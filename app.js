@@ -71,11 +71,11 @@ function model(state, tripFactor = 1, revenueFactor = 1) {
   const netTripRevenue = grossTripRevenue - grossTripRevenue * commissionRate;
 
   const variableFuelCost = trips * state.fuelPerTrip;
-  // Себестоимость: топливо + зарплата водителей + комиссия агрегатора.
-  const costOfSales = variableFuelCost + state.driverPayroll + aggregatorFee;
+  // Себестоимость: зарплата водителей + комиссия агрегатора.
+  const costOfSales = state.driverPayroll + aggregatorFee;
   // Прочие операционные расходы (без себестоимости, налогов и амортизации).
   const otherOperatingExpenses =
-    state.officePayroll + state.maintenanceCost + state.roadAndFees + state.adminCost +
+    variableFuelCost + state.officePayroll + state.maintenanceCost + state.roadAndFees + state.adminCost +
     state.insuranceLicenses + state.softwareDispatch + state.leasingPayments;
   // Операционные расходы (все кроме налогов и амортизации).
   const operatingExpenses = costOfSales + otherOperatingExpenses;
@@ -95,6 +95,7 @@ function model(state, tripFactor = 1, revenueFactor = 1) {
     netTariffPerTrip,
     grossTripRevenue,
     aggregatorFee,
+    driverPayrollCost: state.driverPayroll,
     netTripRevenue,
     totalRevenue,
     variableFuelCost,
@@ -226,9 +227,11 @@ function toExportObject(snapshot) {
     pnl: {
       revenueNet: Math.round(snapshot.result.totalRevenue),
       costOfSales: Math.round(snapshot.result.costOfSales),
+      costOfSalesAggregatorFee: Math.round(snapshot.result.aggregatorFee),
+      costOfSalesDriverPayroll: Math.round(snapshot.result.driverPayrollCost),
       grossProfit: Math.round(snapshot.result.grossProfit),
       otherOperatingExpenses: Math.round(snapshot.result.otherOperatingExpenses),
-      operatingExpenses: Math.round(snapshot.result.operatingExpenses),
+      operatingExpenses: Math.round(snapshot.result.otherOperatingExpenses),
       ebitda: Math.round(snapshot.result.ebitda),
       tax: Math.round(snapshot.result.tax),
       netProfit: Math.round(snapshot.result.netProfit)
@@ -266,6 +269,8 @@ function toRussianExportObject(payload) {
     опиу: {
       выручка_нетто: payload.pnl.revenueNet,
       себестоимость: payload.pnl.costOfSales,
+      себестоимость_комиссия_агрегатора: payload.pnl.costOfSalesAggregatorFee,
+      себестоимость_зарплата_водителей: payload.pnl.costOfSalesDriverPayroll,
       валовая_прибыль: payload.pnl.grossProfit,
       операционные_расходы: payload.pnl.operatingExpenses,
       ebitda: payload.pnl.ebitda,
@@ -378,7 +383,9 @@ function exportPdf() {
   y += 8;
   write("ОПиУ", 13, true);
   write(`Выручка (нетто): ${formatRub(payload.pnl.revenueNet)}`);
-  write(`Себестоимость: ${formatRub(payload.pnl.costOfSales)}`);
+  write(`Себестоимость (комиссия агрегатора + ЗП водителей): ${formatRub(payload.pnl.costOfSales)}`);
+  write(`Комиссия агрегатора в себестоимости: ${formatRub(payload.pnl.costOfSalesAggregatorFee)}`);
+  write(`Зарплата водителей в себестоимости: ${formatRub(payload.pnl.costOfSalesDriverPayroll)}`);
   write(`Валовая прибыль: ${formatRub(payload.pnl.grossProfit)}`);
   write(`Операционные расходы: ${formatRub(payload.pnl.operatingExpenses)}`);
   write(`EBITDA: ${formatRub(payload.pnl.ebitda)}`);
@@ -408,7 +415,9 @@ function exportCsv() {
     `ключевые_показатели,рейсов_в_месяц,${payload.metrics.tripsPerMonth}`,
     `ключевые_показатели,комиссия_агрегатора,${payload.metrics.aggregatorFee}`,
     `опиу,выручка_нетто,${payload.pnl.revenueNet}`,
-    `опиу,себестоимость,${payload.pnl.costOfSales}`,
+    `опиу,себестоимость_(комиссия_агрегатора_+_зп_водителей),${payload.pnl.costOfSales}`,
+    `опиу,комиссия_агрегатора_в_себестоимости,${payload.pnl.costOfSalesAggregatorFee}`,
+    `опиу,зарплата_водителей_в_себестоимости,${payload.pnl.costOfSalesDriverPayroll}`,
     `опиу,валовая_прибыль,${payload.pnl.grossProfit}`,
     `опиу,операционные_расходы,${payload.pnl.operatingExpenses}`,
     `опиу,ebitda,${payload.pnl.ebitda}`,
@@ -459,7 +468,9 @@ function exportTxt() {
     "",
     "P&L:",
     `- Выручка (нетто): ${formatRub(payload.pnl.revenueNet)}`,
-    `- Себестоимость: ${formatRub(payload.pnl.costOfSales)}`,
+    `- Себестоимость (комиссия агрегатора + ЗП водителей): ${formatRub(payload.pnl.costOfSales)}`,
+    `- Комиссия агрегатора в себестоимости: ${formatRub(payload.pnl.costOfSalesAggregatorFee)}`,
+    `- Зарплата водителей в себестоимости: ${formatRub(payload.pnl.costOfSalesDriverPayroll)}`,
     `- Валовая прибыль: ${formatRub(payload.pnl.grossProfit)}`,
     `- Операционные расходы: ${formatRub(payload.pnl.operatingExpenses)}`,
     `- EBITDA: ${formatRub(payload.pnl.ebitda)}`,

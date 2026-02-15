@@ -56,9 +56,23 @@ function renderReport(data) {
 
   pnlTable.innerHTML = "";
   row(pnlTable, "Выручка (нетто)", formatRub(data.pnl.revenueNet));
-  row(pnlTable, "Себестоимость (топливо + ЗП водителей + комиссия агрегатора)", formatRub(data.pnl.costOfSales));
+  row(pnlTable, "Себестоимость (комиссия агрегатора + ЗП водителей)", formatRub(data.pnl.costOfSales));
+  row(
+    pnlTable,
+    "Комиссия агрегатора в себестоимости",
+    formatRub(data.pnl.costOfSalesAggregatorFee ?? data.metrics.aggregatorFee)
+  );
+  row(
+    pnlTable,
+    "Зарплата водителей в себестоимости",
+    formatRub(data.pnl.costOfSalesDriverPayroll ?? data.inputs.driverPayroll ?? 0)
+  );
   row(pnlTable, "Валовая прибыль", formatRub(data.pnl.grossProfit));
-  row(pnlTable, "Операционные расходы (без налогов и амортизации)", formatRub(data.pnl.operatingExpenses));
+  row(
+    pnlTable,
+    "Операционные расходы (без себестоимости, налогов и амортизации)",
+    formatRub(data.pnl.otherOperatingExpenses ?? data.pnl.operatingExpenses)
+  );
   row(pnlTable, "EBITDA", formatRub(data.pnl.ebitda));
   row(pnlTable, "Налоги", formatRub(data.pnl.tax));
   row(pnlTable, "Чистая прибыль", formatRub(data.pnl.netProfit));
@@ -123,9 +137,11 @@ function downloadPdf() {
 
   write("ОПиУ", 12, true);
   write(`Выручка (нетто): ${formatRub(snapshot.pnl.revenueNet)}`);
-  write(`Себестоимость: ${formatRub(snapshot.pnl.costOfSales)}`);
+  write(`Себестоимость (комиссия агрегатора + ЗП водителей): ${formatRub(snapshot.pnl.costOfSales)}`);
+  write(`Комиссия агрегатора в себестоимости: ${formatRub(snapshot.pnl.costOfSalesAggregatorFee ?? snapshot.metrics.aggregatorFee)}`);
+  write(`Зарплата водителей в себестоимости: ${formatRub(snapshot.pnl.costOfSalesDriverPayroll ?? snapshot.inputs.driverPayroll ?? 0)}`);
   write(`Валовая прибыль: ${formatRub(snapshot.pnl.grossProfit)}`);
-  write(`Операционные расходы: ${formatRub(snapshot.pnl.operatingExpenses)}`);
+  write(`Операционные расходы: ${formatRub(snapshot.pnl.otherOperatingExpenses ?? snapshot.pnl.operatingExpenses)}`);
   write(`EBITDA: ${formatRub(snapshot.pnl.ebitda)}`);
   write(`Налоги: ${formatRub(snapshot.pnl.tax)}`);
   write(`Чистая прибыль: ${formatRub(snapshot.pnl.netProfit)}`);
