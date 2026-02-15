@@ -96,7 +96,7 @@ function renderReport(data) {
   );
   row(pnlTable, "  Топливо", formatRub(data.pnl.operatingFuel ?? data.inputs.fuelPerTrip * data.metrics.tripsPerMonth));
   row(pnlTable, "  Зарплаты офиса", formatRub(data.pnl.operatingOfficePayroll ?? data.inputs.officePayroll ?? 0));
-  row(pnlTable, "  Обслуживание", formatRub(data.pnl.operatingMaintenance ?? data.inputs.maintenanceCost ?? 0));
+  row(pnlTable, "  ТО и ремонт", formatRub(data.pnl.operatingMaintenance ?? data.inputs.maintenanceCost ?? 0));
   row(pnlTable, "  Дороги и сборы", formatRub(data.pnl.operatingRoadAndFees ?? data.inputs.roadAndFees ?? 0));
   row(pnlTable, "  Административные", formatRub(data.pnl.operatingAdmin ?? data.inputs.adminCost ?? 0));
   row(pnlTable, "  Страховки и лицензии", formatRub(data.pnl.operatingInsuranceLicenses ?? data.inputs.insuranceLicenses ?? 0));
@@ -173,7 +173,7 @@ function downloadPdf() {
   write(`Операционные расходы: ${formatRub(snapshot.pnl.otherOperatingExpenses ?? snapshot.pnl.operatingExpenses)}`);
   write(`  Топливо: ${formatRub(snapshot.pnl.operatingFuel ?? snapshot.inputs.fuelPerTrip * snapshot.metrics.tripsPerMonth)}`);
   write(`  Зарплаты офиса: ${formatRub(snapshot.pnl.operatingOfficePayroll ?? snapshot.inputs.officePayroll ?? 0)}`);
-  write(`  Обслуживание: ${formatRub(snapshot.pnl.operatingMaintenance ?? snapshot.inputs.maintenanceCost ?? 0)}`);
+  write(`  ТО и ремонт: ${formatRub(snapshot.pnl.operatingMaintenance ?? snapshot.inputs.maintenanceCost ?? 0)}`);
   write(`  Дороги и сборы: ${formatRub(snapshot.pnl.operatingRoadAndFees ?? snapshot.inputs.roadAndFees ?? 0)}`);
   write(`  Административные: ${formatRub(snapshot.pnl.operatingAdmin ?? snapshot.inputs.adminCost ?? 0)}`);
   write(`  Страховки и лицензии: ${formatRub(snapshot.pnl.operatingInsuranceLicenses ?? snapshot.inputs.insuranceLicenses ?? 0)}`);
@@ -213,7 +213,7 @@ function downloadCsv() {
     `опиу,операционные_расходы,${snapshot.pnl.otherOperatingExpenses ?? snapshot.pnl.operatingExpenses}`,
     `опиу,операционные_расходы_топливо,${snapshot.pnl.operatingFuel ?? snapshot.inputs.fuelPerTrip * snapshot.metrics.tripsPerMonth}`,
     `опиу,операционные_расходы_зарплата_офиса,${snapshot.pnl.operatingOfficePayroll ?? snapshot.inputs.officePayroll ?? 0}`,
-    `опиу,операционные_расходы_обслуживание,${snapshot.pnl.operatingMaintenance ?? snapshot.inputs.maintenanceCost ?? 0}`,
+    `опиу,операционные_расходы_то_и_ремонт,${snapshot.pnl.operatingMaintenance ?? snapshot.inputs.maintenanceCost ?? 0}`,
     `опиу,операционные_расходы_дороги_и_сборы,${snapshot.pnl.operatingRoadAndFees ?? snapshot.inputs.roadAndFees ?? 0}`,
     `опиу,операционные_расходы_административные,${snapshot.pnl.operatingAdmin ?? snapshot.inputs.adminCost ?? 0}`,
     `опиу,операционные_расходы_страховки_и_лицензии,${snapshot.pnl.operatingInsuranceLicenses ?? snapshot.inputs.insuranceLicenses ?? 0}`,
@@ -275,7 +275,7 @@ function downloadTxt() {
     `- Операционные расходы: ${formatRub(snapshot.pnl.otherOperatingExpenses ?? snapshot.pnl.operatingExpenses)}`,
     `- Топливо: ${formatRub(snapshot.pnl.operatingFuel ?? snapshot.inputs.fuelPerTrip * snapshot.metrics.tripsPerMonth)}`,
     `- Зарплаты офиса: ${formatRub(snapshot.pnl.operatingOfficePayroll ?? snapshot.inputs.officePayroll ?? 0)}`,
-    `- Обслуживание: ${formatRub(snapshot.pnl.operatingMaintenance ?? snapshot.inputs.maintenanceCost ?? 0)}`,
+    `- ТО и ремонт: ${formatRub(snapshot.pnl.operatingMaintenance ?? snapshot.inputs.maintenanceCost ?? 0)}`,
     `- Дороги и сборы: ${formatRub(snapshot.pnl.operatingRoadAndFees ?? snapshot.inputs.roadAndFees ?? 0)}`,
     `- Административные: ${formatRub(snapshot.pnl.operatingAdmin ?? snapshot.inputs.adminCost ?? 0)}`,
     `- Страховки и лицензии: ${formatRub(snapshot.pnl.operatingInsuranceLicenses ?? snapshot.inputs.insuranceLicenses ?? 0)}`,

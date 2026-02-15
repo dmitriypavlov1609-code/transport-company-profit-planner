@@ -330,7 +330,7 @@ function toRussianExportObject(payload) {
       операционные_расходы: payload.pnl.operatingExpenses,
       операционные_расходы_топливо: payload.pnl.operatingFuel,
       операционные_расходы_зарплата_офиса: payload.pnl.operatingOfficePayroll,
-      операционные_расходы_обслуживание: payload.pnl.operatingMaintenance,
+      операционные_расходы_то_и_ремонт: payload.pnl.operatingMaintenance,
       операционные_расходы_дороги_и_сборы: payload.pnl.operatingRoadAndFees,
       операционные_расходы_административные: payload.pnl.operatingAdmin,
       операционные_расходы_страховки_и_лицензии: payload.pnl.operatingInsuranceLicenses,
@@ -454,7 +454,7 @@ function exportPdf() {
   write(`Операционные расходы: ${formatRub(payload.pnl.operatingExpenses)}`);
   write(`  Топливо: ${formatRub(payload.pnl.operatingFuel)}`);
   write(`  Зарплаты офиса: ${formatRub(payload.pnl.operatingOfficePayroll)}`);
-  write(`  Обслуживание: ${formatRub(payload.pnl.operatingMaintenance)}`);
+  write(`  ТО и ремонт: ${formatRub(payload.pnl.operatingMaintenance)}`);
   write(`  Дороги и сборы: ${formatRub(payload.pnl.operatingRoadAndFees)}`);
   write(`  Административные: ${formatRub(payload.pnl.operatingAdmin)}`);
   write(`  Страховки и лицензии: ${formatRub(payload.pnl.operatingInsuranceLicenses)}`);
@@ -494,7 +494,7 @@ function exportCsv() {
     `опиу,операционные_расходы,${payload.pnl.operatingExpenses}`,
     `опиу,операционные_расходы_топливо,${payload.pnl.operatingFuel}`,
     `опиу,операционные_расходы_зарплата_офиса,${payload.pnl.operatingOfficePayroll}`,
-    `опиу,операционные_расходы_обслуживание,${payload.pnl.operatingMaintenance}`,
+    `опиу,операционные_расходы_то_и_ремонт,${payload.pnl.operatingMaintenance}`,
     `опиу,операционные_расходы_дороги_и_сборы,${payload.pnl.operatingRoadAndFees}`,
     `опиу,операционные_расходы_административные,${payload.pnl.operatingAdmin}`,
     `опиу,операционные_расходы_страховки_и_лицензии,${payload.pnl.operatingInsuranceLicenses}`,
@@ -555,7 +555,7 @@ function exportTxt() {
     `- Операционные расходы: ${formatRub(payload.pnl.operatingExpenses)}`,
     `- Топливо: ${formatRub(payload.pnl.operatingFuel)}`,
     `- Зарплаты офиса: ${formatRub(payload.pnl.operatingOfficePayroll)}`,
-    `- Обслуживание: ${formatRub(payload.pnl.operatingMaintenance)}`,
+    `- ТО и ремонт: ${formatRub(payload.pnl.operatingMaintenance)}`,
     `- Дороги и сборы: ${formatRub(payload.pnl.operatingRoadAndFees)}`,
     `- Административные: ${formatRub(payload.pnl.operatingAdmin)}`,
     `- Страховки и лицензии: ${formatRub(payload.pnl.operatingInsuranceLicenses)}`,
