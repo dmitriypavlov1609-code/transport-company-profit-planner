@@ -1,5 +1,5 @@
 const ids = [
-  "activeVehicles", "tripsPerVehicle", "revenuePerTrip", "loadFactor", "aggregatorCommission", "otherRevenue", "cashCollectionRate",
+  "activeVehicles", "tripsPerVehicle", "revenuePerTrip", "aggregatorCommission", "otherRevenue", "cashCollectionRate",
   "fuelPerTrip", "driverPayroll", "officePayroll", "maintenanceCost", "roadAndFees", "adminCost",
   "insuranceLicenses", "softwareDispatch", "leasingPayments", "taxRate", "capex", "loanPayments"
 ];
@@ -62,7 +62,7 @@ function getState() {
 
 function model(state, tripFactor = 1, revenueFactor = 1) {
   const trips = state.activeVehicles * state.tripsPerVehicle * tripFactor;
-  const grossTariffPerTrip = state.revenuePerTrip * (state.loadFactor / 100) * revenueFactor;
+  const grossTariffPerTrip = state.revenuePerTrip * revenueFactor;
   const netTariffPerTrip = grossTariffPerTrip * (1 - state.aggregatorCommission / 100);
 
   const grossTripRevenue = trips * grossTariffPerTrip;
@@ -145,6 +145,9 @@ function applyTotalExpensesOverride(baseResult) {
 }
 
 function updateAutoExpensesFromState() {
+  if (num(revenueTarget.value) > 0) {
+    applyRevenueTarget();
+  }
   const state = getState();
   const baseResult = model(state);
   const result = applyTotalExpensesOverride(baseResult);
@@ -160,7 +163,7 @@ function updateRevenueTargetFromState() {
 function applyRevenueTarget() {
   const state = getState();
   const targetRevenue = num(revenueTarget.value);
-  const grossTariffPerTrip = state.revenuePerTrip * (state.loadFactor / 100);
+  const grossTariffPerTrip = state.revenuePerTrip;
   const netTariffPerTrip = grossTariffPerTrip * (1 - state.aggregatorCommission / 100);
 
   if (netTariffPerTrip <= 0) {
@@ -190,7 +193,7 @@ function applyRevenueTarget() {
 }
 
 function breakeven(state) {
-  const grossTariffPerTrip = state.revenuePerTrip * (state.loadFactor / 100);
+  const grossTariffPerTrip = state.revenuePerTrip;
   const netTariffPerTrip = grossTariffPerTrip * (1 - state.aggregatorCommission / 100);
   const contributionPerTrip = netTariffPerTrip - state.fuelPerTrip;
 
@@ -328,6 +331,9 @@ function persistSnapshot() {
 }
 
 function calculate() {
+  if (num(revenueTarget.value) > 0) {
+    applyRevenueTarget();
+  }
   const state = getState();
   const baseResult = model(state);
   const result = applyTotalExpensesOverride(baseResult);
@@ -517,7 +523,6 @@ function loadDemo() {
     activeVehicles: 26,
     tripsPerVehicle: 38,
     revenuePerTrip: 18500,
-    loadFactor: 84,
     aggregatorCommission: 11,
     otherRevenue: 260000,
     cashCollectionRate: 90,
@@ -551,7 +556,6 @@ function resetAll() {
   elements.activeVehicles.value = 18;
   elements.tripsPerVehicle.value = 42;
   elements.revenuePerTrip.value = 16500;
-  elements.loadFactor.value = 82;
   elements.aggregatorCommission.value = 12;
   elements.cashCollectionRate.value = 88;
   elements.taxRate.value = 20;
