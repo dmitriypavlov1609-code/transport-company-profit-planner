@@ -49,6 +49,7 @@
 
     <section class="actions">
       <button id="calculateBtn">Рассчитать</button>
+      <button id="openReportBtn">Открыть P&L отчет</button>
       <button id="exportPdfBtn">Скачать PDF</button>
       <button id="exportCsvBtn" class="ghost">CSV</button>
       <button id="exportJsonBtn" class="ghost">JSON</button>
@@ -94,54 +95,6 @@
           <tbody id="scenarioTable"></tbody>
         </table>
       </article>
-
-      <article class="card full">
-        <h3>P&L отчет (месяц)</h3>
-        <table>
-          <tbody id="pnlTable"></tbody>
-        </table>
-      </article>
-
-      <article class="card full">
-        <h3>ДДС (месяц)</h3>
-        <table>
-          <tbody id="cashflowTable"></tbody>
-        </table>
-      </article>
-    </section>
-
-    <section id="pdfReport" class="pdf-report hidden">
-      <h2>Transport Company Profit Report</h2>
-      <p id="pdfGeneratedAt"></p>
-
-      <h3>Ключевые показатели</h3>
-      <ul id="pdfMetrics"></ul>
-
-      <h3>Точка безубыточности</h3>
-      <p id="pdfBreakeven"></p>
-
-      <h3>Сценарии</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Сценарий</th>
-            <th>Рейсов в месяц</th>
-            <th>Тариф</th>
-            <th>Прибыль</th>
-          </tr>
-        </thead>
-        <tbody id="pdfScenarioTable"></tbody>
-      </table>
-
-      <h3>P&L</h3>
-      <table>
-        <tbody id="pdfPnlTable"></tbody>
-      </table>
-
-      <h3>ДДС</h3>
-      <table>
-        <tbody id="pdfCashflowTable"></tbody>
-      </table>
     </section>
   </main>
 

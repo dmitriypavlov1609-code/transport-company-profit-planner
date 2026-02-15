@@ -88,6 +88,11 @@ button {
   color: #fff;
 }
 
+#openReportBtn {
+  background: linear-gradient(90deg, #495773, #667798);
+  color: #fff;
+}
+
 #exportPdfBtn {
   background: linear-gradient(90deg, #c4571f, var(--accent-2));
   color: #fff;

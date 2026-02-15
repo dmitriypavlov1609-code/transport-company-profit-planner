@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>P&L и ДДС отчет</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="report.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Финансовая аналитика</p>
+        <h1>P&L и ДДС отчет</h1>
+        <p id="generatedAt" class="subtitle"></p>
+      </div>
+      <div class="header-actions">
+        <a class="ghost" href="index.html">Назад к калькулятору</a>
+        <button id="downloadPdfBtn">Скачать PDF</button>
+        <button id="printBtn" class="ghost">Печать</button>
+      </div>
+    </header>
+
+    <section id="emptyState" class="card hidden">
+      <h2>Нет данных для отчета</h2>
+      <p>Сначала выполните расчет на главной странице, затем откройте отчет.</p>
+      <a class="ghost inline-link" href="index.html">Открыть калькулятор</a>
+    </section>
+
+    <section id="reportContent" class="content hidden">
+      <section class="metrics-grid">
+        <article class="metric"><h3>Выручка (нетто)</h3><p id="mRevenue"></p></article>
+        <article class="metric"><h3>Операционные расходы</h3><p id="mCost"></p></article>
+        <article class="metric"><h3>Чистая прибыль</h3><p id="mProfit"></p></article>
+        <article class="metric"><h3>Маржа</h3><p id="mMargin"></p></article>
+      </section>
+
+      <section class="card">
+        <h2>Ключевые операционные показатели</h2>
+        <table><tbody id="kpiTable"></tbody></table>
+      </section>
+
+      <section class="columns">
+        <article class="card">
+          <h2>P&L (Отчет о прибылях и убытках)</h2>
+          <table><tbody id="pnlTable"></tbody></table>
+        </article>
+
+        <article class="card">
+          <h2>ДДС (Движение денежных средств)</h2>
+          <table><tbody id="cashflowTable"></tbody></table>
+        </article>
+      </section>
+
+      <section class="card">
+        <h2>Сценарный анализ</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Сценарий</th>
+              <th>Рейсов в месяц</th>
+              <th>Тариф нетто</th>
+              <th>Чистая прибыль</th>
+            </tr>
+          </thead>
+          <tbody id="scenarioTable"></tbody>
+        </table>
+      </section>
+    </section>
+  </main>
+
+  <script src="report.js"></script>
+</body>
+</html>
