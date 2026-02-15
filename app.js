@@ -23,7 +23,7 @@ const profitValue = document.getElementById("profitValue");
 const marginValue = document.getElementById("marginValue");
 const breakevenText = document.getElementById("breakevenText");
 const scenarioTable = document.getElementById("scenarioTable");
-const revenuePreview = document.getElementById("revenuePreview");
+const revenueTarget = document.getElementById("revenueTarget");
 
 let lastCalculation = null;
 
@@ -110,10 +110,42 @@ function model(state, tripFactor = 1, revenueFactor = 1) {
   };
 }
 
-function updateRevenuePreview() {
+function updateRevenueTargetFromState() {
   const state = getState();
   const result = model(state);
-  revenuePreview.value = formatRub(result.totalRevenue);
+  revenueTarget.value = Math.round(result.totalRevenue);
+}
+
+function applyRevenueTarget() {
+  const state = getState();
+  const targetRevenue = num(revenueTarget.value);
+  const grossTariffPerTrip = state.revenuePerTrip * (state.loadFactor / 100);
+  const netTariffPerTrip = grossTariffPerTrip * (1 - state.aggregatorCommission / 100);
+
+  if (netTariffPerTrip <= 0) {
+    return;
+  }
+
+  const requiredTripRevenue = Math.max(0, targetRevenue - state.otherRevenue);
+  const requiredTrips = requiredTripRevenue / netTariffPerTrip;
+
+  let vehicles = Math.max(1, Math.round(state.activeVehicles || 1));
+  let tripsPerVehicle = vehicles > 0 ? requiredTrips / vehicles : 0;
+
+  // Если на машину получается слишком много рейсов, увеличиваем количество машин.
+  if (tripsPerVehicle > 62) {
+    vehicles = Math.max(1, Math.ceil(requiredTrips / 62));
+    tripsPerVehicle = requiredTrips / vehicles;
+  }
+
+  // Если рейсов на машину слишком мало, сокращаем парк до реалистичной нагрузки.
+  if (tripsPerVehicle > 0 && tripsPerVehicle < 12 && vehicles > 1) {
+    vehicles = Math.max(1, Math.ceil(requiredTrips / 12));
+    tripsPerVehicle = vehicles > 0 ? requiredTrips / vehicles : 0;
+  }
+
+  elements.activeVehicles.value = vehicles;
+  elements.tripsPerVehicle.value = Math.max(0, Number(tripsPerVehicle.toFixed(1)));
 }
 
 function breakeven(state) {
@@ -279,7 +311,7 @@ function calculate() {
   };
 
   persistSnapshot();
-  updateRevenuePreview();
+  updateRevenueTargetFromState();
   results.classList.remove("hidden");
 }
 
@@ -462,7 +494,7 @@ function loadDemo() {
   }
 
   calculate();
-  updateRevenuePreview();
+  updateRevenueTargetFromState();
 }
 
 function resetAll() {
@@ -479,7 +511,7 @@ function resetAll() {
   results.classList.add("hidden");
   lastCalculation = null;
   localStorage.removeItem(SNAPSHOT_KEY);
-  updateRevenuePreview();
+  updateRevenueTargetFromState();
 }
 
 calculateBtn.addEventListener("click", calculate);
@@ -492,7 +524,12 @@ demoBtn.addEventListener("click", loadDemo);
 clearBtn.addEventListener("click", resetAll);
 
 for (const id of ids) {
-  elements[id].addEventListener("input", updateRevenuePreview);
+  elements[id].addEventListener("input", calculate);
 }
 
-updateRevenuePreview();
+revenueTarget.addEventListener("input", () => {
+  applyRevenueTarget();
+  calculate();
+});
+
+updateRevenueTargetFromState();
