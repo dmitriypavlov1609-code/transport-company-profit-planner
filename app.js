@@ -132,6 +132,7 @@ function applyRevenueTarget() {
   const state = getState();
   const targetRevenue = num(revenueTarget.value);
   const grossTariffPerTrip = state.revenuePerTrip;
+  const baseTripsPerVehicle = 50;
 
   if (grossTariffPerTrip <= 0) {
     return;
@@ -140,20 +141,8 @@ function applyRevenueTarget() {
   const requiredTripRevenue = Math.max(0, targetRevenue - state.otherRevenue);
   const requiredTrips = requiredTripRevenue / grossTariffPerTrip;
 
-  let vehicles = Math.max(1, Math.round(state.activeVehicles || 1));
-  let tripsPerVehicle = vehicles > 0 ? requiredTrips / vehicles : 0;
-
-  // Если на машину получается слишком много рейсов, увеличиваем количество машин.
-  if (tripsPerVehicle > 62) {
-    vehicles = Math.max(1, Math.ceil(requiredTrips / 62));
-    tripsPerVehicle = requiredTrips / vehicles;
-  }
-
-  // Если рейсов на машину слишком мало, сокращаем парк до реалистичной нагрузки.
-  if (tripsPerVehicle > 0 && tripsPerVehicle < 12 && vehicles > 1) {
-    vehicles = Math.max(1, Math.ceil(requiredTrips / 12));
-    tripsPerVehicle = vehicles > 0 ? requiredTrips / vehicles : 0;
-  }
+  const vehicles = Math.max(1, Math.ceil(requiredTrips / baseTripsPerVehicle));
+  const tripsPerVehicle = vehicles > 0 ? requiredTrips / vehicles : 0;
 
   elements.activeVehicles.value = vehicles;
   elements.tripsPerVehicle.value = Math.max(0, Number(tripsPerVehicle.toFixed(1)));
