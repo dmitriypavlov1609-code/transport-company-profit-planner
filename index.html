@@ -25,16 +25,25 @@
         <label>Рейсов на машину в месяц <input id="tripsPerVehicle" type="number" min="0" value="42" /></label>
         <label>Средний доход за рейс, ₽ <input id="revenuePerTrip" type="number" min="0" value="16500" /></label>
         <label>Средняя загрузка, % <input id="loadFactor" type="number" min="1" max="100" value="82" /></label>
+        <label>Комиссия агрегатора, % <input id="aggregatorCommission" type="number" min="0" max="100" value="12" /></label>
         <label>Прочая выручка (экспедирование и т.д.), ₽ <input id="otherRevenue" type="number" min="0" value="180000" /></label>
+        <label>Инкассация выручки в месяце, % <input id="cashCollectionRate" type="number" min="0" max="100" value="88" /></label>
       </article>
 
       <article class="card">
         <h2>Расходы</h2>
         <label>Топливо, ₽/рейс <input id="fuelPerTrip" type="number" min="0" value="4200" /></label>
         <label>Зарплата водителей, ₽/мес <input id="driverPayroll" type="number" min="0" value="1350000" /></label>
+        <label>ЗП офисных сотрудников, ₽/мес <input id="officePayroll" type="number" min="0" value="420000" /></label>
         <label>ТО и ремонт, ₽/мес <input id="maintenanceCost" type="number" min="0" value="320000" /></label>
         <label>Платные дороги/штрафы/сборы, ₽/мес <input id="roadAndFees" type="number" min="0" value="190000" /></label>
-        <label>Админ и офис, ₽/мес <input id="adminCost" type="number" min="0" value="260000" /></label>
+        <label>Админ и офис (прочее), ₽/мес <input id="adminCost" type="number" min="0" value="260000" /></label>
+        <label>Страхование и лицензии, ₽/мес <input id="insuranceLicenses" type="number" min="0" value="140000" /></label>
+        <label>Софт и диспетчеризация, ₽/мес <input id="softwareDispatch" type="number" min="0" value="90000" /></label>
+        <label>Лизинговые платежи, ₽/мес <input id="leasingPayments" type="number" min="0" value="380000" /></label>
+        <label>Налог на прибыль, % <input id="taxRate" type="number" min="0" max="100" value="20" /></label>
+        <label>CAPEX/обновление автопарка, ₽/мес <input id="capex" type="number" min="0" value="220000" /></label>
+        <label>Погашение кредита (тело+проценты), ₽/мес <input id="loanPayments" type="number" min="0" value="160000" /></label>
       </article>
     </section>
 
@@ -85,6 +94,20 @@
           <tbody id="scenarioTable"></tbody>
         </table>
       </article>
+
+      <article class="card full">
+        <h3>P&L отчет (месяц)</h3>
+        <table>
+          <tbody id="pnlTable"></tbody>
+        </table>
+      </article>
+
+      <article class="card full">
+        <h3>ДДС (месяц)</h3>
+        <table>
+          <tbody id="cashflowTable"></tbody>
+        </table>
+      </article>
     </section>
 
     <section id="pdfReport" class="pdf-report hidden">
@@ -108,6 +131,16 @@
           </tr>
         </thead>
         <tbody id="pdfScenarioTable"></tbody>
+      </table>
+
+      <h3>P&L</h3>
+      <table>
+        <tbody id="pdfPnlTable"></tbody>
+      </table>
+
+      <h3>ДДС</h3>
+      <table>
+        <tbody id="pdfCashflowTable"></tbody>
       </table>
     </section>
   </main>

@@ -1,6 +1,7 @@
 const ids = [
-  "activeVehicles", "tripsPerVehicle", "revenuePerTrip", "loadFactor", "otherRevenue",
-  "fuelPerTrip", "driverPayroll", "maintenanceCost", "roadAndFees", "adminCost"
+  "activeVehicles", "tripsPerVehicle", "revenuePerTrip", "loadFactor", "aggregatorCommission", "otherRevenue", "cashCollectionRate",
+  "fuelPerTrip", "driverPayroll", "officePayroll", "maintenanceCost", "roadAndFees", "adminCost",
+  "insuranceLicenses", "softwareDispatch", "leasingPayments", "taxRate", "capex", "loanPayments"
 ];
 
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
@@ -19,12 +20,16 @@ const profitValue = document.getElementById("profitValue");
 const marginValue = document.getElementById("marginValue");
 const breakevenText = document.getElementById("breakevenText");
 const scenarioTable = document.getElementById("scenarioTable");
+const pnlTable = document.getElementById("pnlTable");
+const cashflowTable = document.getElementById("cashflowTable");
 
 const pdfReport = document.getElementById("pdfReport");
 const pdfGeneratedAt = document.getElementById("pdfGeneratedAt");
 const pdfMetrics = document.getElementById("pdfMetrics");
 const pdfBreakeven = document.getElementById("pdfBreakeven");
 const pdfScenarioTable = document.getElementById("pdfScenarioTable");
+const pdfPnlTable = document.getElementById("pdfPnlTable");
+const pdfCashflowTable = document.getElementById("pdfCashflowTable");
 
 let lastCalculation = null;
 
@@ -61,41 +66,99 @@ function getState() {
 
 function model(state, tripFactor = 1, revenueFactor = 1) {
   const trips = state.activeVehicles * state.tripsPerVehicle * tripFactor;
-  const effectiveRevenuePerTrip = state.revenuePerTrip * (state.loadFactor / 100) * revenueFactor;
-  const tripRevenue = trips * effectiveRevenuePerTrip;
-  const totalRevenue = tripRevenue + state.otherRevenue;
+  const grossTariffPerTrip = state.revenuePerTrip * (state.loadFactor / 100) * revenueFactor;
+  const netTariffPerTrip = grossTariffPerTrip * (1 - state.aggregatorCommission / 100);
 
-  const fuelCost = trips * state.fuelPerTrip;
-  const fixedCost = state.driverPayroll + state.maintenanceCost + state.roadAndFees + state.adminCost;
-  const totalCost = fuelCost + fixedCost;
+  const grossTripRevenue = trips * grossTariffPerTrip;
+  const aggregatorFee = grossTripRevenue - trips * netTariffPerTrip;
+  const netTripRevenue = trips * netTariffPerTrip;
+  const totalRevenue = netTripRevenue + state.otherRevenue;
 
-  const profit = totalRevenue - totalCost;
-  const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+  const variableCost = trips * state.fuelPerTrip;
+  const fixedOperatingCost =
+    state.driverPayroll + state.officePayroll + state.maintenanceCost + state.roadAndFees + state.adminCost +
+    state.insuranceLicenses + state.softwareDispatch + state.leasingPayments;
+
+  const totalOperatingCost = variableCost + fixedOperatingCost;
+
+  const grossProfit = totalRevenue - variableCost;
+  const ebitda = totalRevenue - totalOperatingCost;
+  const tax = Math.max(0, ebitda) * (state.taxRate / 100);
+  const netProfit = ebitda - tax;
+
+  const cashIn = totalRevenue * (state.cashCollectionRate / 100);
+  const cashOut = totalOperatingCost + tax + state.capex + state.loanPayments;
+  const netCashFlow = cashIn - cashOut;
 
   return {
     trips,
-    effectiveRevenuePerTrip,
+    grossTariffPerTrip,
+    netTariffPerTrip,
+    grossTripRevenue,
+    aggregatorFee,
+    netTripRevenue,
     totalRevenue,
-    totalCost,
-    profit,
-    margin,
-    fixedCost
+    variableCost,
+    fixedOperatingCost,
+    totalOperatingCost,
+    grossProfit,
+    ebitda,
+    tax,
+    netProfit,
+    cashIn,
+    cashOut,
+    netCashFlow,
+    margin: totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0
   };
 }
 
 function breakeven(state) {
-  const effectiveRevenuePerTrip = state.revenuePerTrip * (state.loadFactor / 100);
-  const contributionPerTrip = effectiveRevenuePerTrip - state.fuelPerTrip;
-  const fixedCost = state.driverPayroll + state.maintenanceCost + state.roadAndFees + state.adminCost;
-  const netFixedCost = Math.max(0, fixedCost - state.otherRevenue);
+  const grossTariffPerTrip = state.revenuePerTrip * (state.loadFactor / 100);
+  const netTariffPerTrip = grossTariffPerTrip * (1 - state.aggregatorCommission / 100);
+  const contributionPerTrip = netTariffPerTrip - state.fuelPerTrip;
+
+  const fixedWithTaxApprox =
+    state.driverPayroll + state.officePayroll + state.maintenanceCost + state.roadAndFees + state.adminCost +
+    state.insuranceLicenses + state.softwareDispatch + state.leasingPayments;
+
+  const fixedNet = Math.max(0, fixedWithTaxApprox - state.otherRevenue);
 
   if (contributionPerTrip <= 0) {
     return { trips: Infinity, perVehicle: Infinity };
   }
 
-  const trips = netFixedCost / contributionPerTrip;
+  const trips = fixedNet / contributionPerTrip;
   const perVehicle = state.activeVehicles > 0 ? trips / state.activeVehicles : Infinity;
   return { trips, perVehicle };
+}
+
+function renderKeyValueRows(target, rows) {
+  target.innerHTML = "";
+  for (const row of rows) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${row.label}</td><td>${row.value}</td>`;
+    target.appendChild(tr);
+  }
+}
+
+function renderPnl(result) {
+  renderKeyValueRows(pnlTable, [
+    { label: "Выручка (нетто)", value: formatRub(result.totalRevenue) },
+    { label: "Себестоимость рейсов (переменная)", value: formatRub(result.variableCost) },
+    { label: "Валовая прибыль", value: formatRub(result.grossProfit) },
+    { label: "Операционные расходы (фикс)", value: formatRub(result.fixedOperatingCost) },
+    { label: "EBITDA", value: formatRub(result.ebitda) },
+    { label: "Налоги", value: formatRub(result.tax) },
+    { label: "Чистая прибыль", value: formatRub(result.netProfit) }
+  ]);
+}
+
+function renderCashflow(result) {
+  renderKeyValueRows(cashflowTable, [
+    { label: "Денежные поступления", value: formatRub(result.cashIn) },
+    { label: "Денежные выплаты (OPEX + налоги + CAPEX + кредиты)", value: formatRub(result.cashOut) },
+    { label: "Чистый денежный поток", value: formatRub(result.netCashFlow) }
+  ]);
 }
 
 function renderScenarios(state) {
@@ -114,16 +177,16 @@ function renderScenarios(state) {
     tr.innerHTML = `
       <td>${s.name}</td>
       <td>${Math.round(result.trips)}</td>
-      <td>${formatRub(result.effectiveRevenuePerTrip)}</td>
-      <td>${formatRub(result.profit)}</td>
+      <td>${formatRub(result.netTariffPerTrip)}</td>
+      <td>${formatRub(result.netProfit)}</td>
     `;
     scenarioTable.appendChild(tr);
 
     rows.push({
       name: s.name,
       trips: Math.round(result.trips),
-      tariff: result.effectiveRevenuePerTrip,
-      profit: result.profit
+      tariff: result.netTariffPerTrip,
+      profit: result.netProfit
     });
   }
 
@@ -135,11 +198,12 @@ function renderPdf(snapshot) {
 
   pdfMetrics.innerHTML = "";
   const metrics = [
-    `Месячная выручка: ${formatRub(snapshot.result.totalRevenue)}`,
-    `Месячные расходы: ${formatRub(snapshot.result.totalCost)}`,
-    `Ожидаемая прибыль: ${formatRub(snapshot.result.profit)}`,
+    `Месячная выручка (нетто): ${formatRub(snapshot.result.totalRevenue)}`,
+    `Месячные расходы (операционные): ${formatRub(snapshot.result.totalOperatingCost)}`,
+    `Чистая прибыль: ${formatRub(snapshot.result.netProfit)}`,
     `Маржа: ${snapshot.result.margin.toFixed(1)}%`,
-    `Рейсов в месяц: ${Math.round(snapshot.result.trips)}`
+    `Рейсов в месяц: ${Math.round(snapshot.result.trips)}`,
+    `Комиссия агрегатора: ${formatRub(snapshot.result.aggregatorFee)}`
   ];
 
   for (const m of metrics) {
@@ -149,7 +213,7 @@ function renderPdf(snapshot) {
   }
 
   if (!Number.isFinite(snapshot.breakpoint.trips) || !Number.isFinite(snapshot.breakpoint.perVehicle)) {
-    pdfBreakeven.textContent = "Точка безубыточности не считается: вклад одного рейса <= 0. Пересмотрите тариф или затраты на рейс.";
+    pdfBreakeven.textContent = "Точка безубыточности не считается: вклад одного рейса <= 0. Пересмотрите тариф, комиссию агрегатора или затраты на рейс.";
   } else {
     pdfBreakeven.textContent = `Для безубыточности нужно примерно ${Math.ceil(snapshot.breakpoint.trips)} рейсов в месяц (${snapshot.breakpoint.perVehicle.toFixed(1)} рейсов на машину).`;
   }
@@ -165,6 +229,54 @@ function renderPdf(snapshot) {
     `;
     pdfScenarioTable.appendChild(tr);
   }
+
+  renderKeyValueRows(pdfPnlTable, [
+    { label: "Выручка (нетто)", value: formatRub(snapshot.result.totalRevenue) },
+    { label: "Себестоимость рейсов (переменная)", value: formatRub(snapshot.result.variableCost) },
+    { label: "Валовая прибыль", value: formatRub(snapshot.result.grossProfit) },
+    { label: "Операционные расходы (фикс)", value: formatRub(snapshot.result.fixedOperatingCost) },
+    { label: "EBITDA", value: formatRub(snapshot.result.ebitda) },
+    { label: "Налоги", value: formatRub(snapshot.result.tax) },
+    { label: "Чистая прибыль", value: formatRub(snapshot.result.netProfit) }
+  ]);
+
+  renderKeyValueRows(pdfCashflowTable, [
+    { label: "Денежные поступления", value: formatRub(snapshot.result.cashIn) },
+    { label: "Денежные выплаты", value: formatRub(snapshot.result.cashOut) },
+    { label: "Чистый денежный поток", value: formatRub(snapshot.result.netCashFlow) }
+  ]);
+}
+
+function calculate() {
+  const state = getState();
+  const result = model(state);
+  const breakpoint = breakeven(state);
+  const scenarios = renderScenarios(state);
+
+  revenueValue.textContent = formatRub(result.totalRevenue);
+  costValue.textContent = formatRub(result.totalOperatingCost);
+  profitValue.textContent = formatRub(result.netProfit);
+  marginValue.textContent = `${result.margin.toFixed(1)}%`;
+
+  if (!Number.isFinite(breakpoint.trips) || !Number.isFinite(breakpoint.perVehicle)) {
+    breakevenText.textContent = "Точка безубыточности не считается: вклад одного рейса <= 0. Пересмотрите тариф, комиссию агрегатора или затраты на рейс.";
+  } else {
+    breakevenText.textContent = `Для безубыточности нужно примерно ${Math.ceil(breakpoint.trips)} рейсов в месяц (${breakpoint.perVehicle.toFixed(1)} рейсов на машину).`;
+  }
+
+  renderPnl(result);
+  renderCashflow(result);
+
+  lastCalculation = {
+    generatedAt: Date.now(),
+    state,
+    result,
+    breakpoint,
+    scenarios
+  };
+
+  renderPdf(lastCalculation);
+  results.classList.remove("hidden");
 }
 
 function toExportObject(snapshot) {
@@ -172,11 +284,26 @@ function toExportObject(snapshot) {
     generatedAt: new Date(snapshot.generatedAt).toISOString(),
     inputs: snapshot.state,
     metrics: {
-      monthlyRevenue: Math.round(snapshot.result.totalRevenue),
-      monthlyCost: Math.round(snapshot.result.totalCost),
-      profit: Math.round(snapshot.result.profit),
+      monthlyRevenueNet: Math.round(snapshot.result.totalRevenue),
+      monthlyOperatingCost: Math.round(snapshot.result.totalOperatingCost),
+      netProfit: Math.round(snapshot.result.netProfit),
       marginPercent: Number(snapshot.result.margin.toFixed(1)),
-      tripsPerMonth: Math.round(snapshot.result.trips)
+      tripsPerMonth: Math.round(snapshot.result.trips),
+      aggregatorFee: Math.round(snapshot.result.aggregatorFee)
+    },
+    pnl: {
+      revenueNet: Math.round(snapshot.result.totalRevenue),
+      variableCost: Math.round(snapshot.result.variableCost),
+      grossProfit: Math.round(snapshot.result.grossProfit),
+      fixedOperatingCost: Math.round(snapshot.result.fixedOperatingCost),
+      ebitda: Math.round(snapshot.result.ebitda),
+      tax: Math.round(snapshot.result.tax),
+      netProfit: Math.round(snapshot.result.netProfit)
+    },
+    cashflow: {
+      cashIn: Math.round(snapshot.result.cashIn),
+      cashOut: Math.round(snapshot.result.cashOut),
+      netCashFlow: Math.round(snapshot.result.netCashFlow)
     },
     breakeven: {
       trips: Number.isFinite(snapshot.breakpoint.trips) ? Number(snapshot.breakpoint.trips.toFixed(2)) : null,
@@ -186,7 +313,7 @@ function toExportObject(snapshot) {
       scenario: s.name,
       trips: s.trips,
       tariffRub: Math.round(s.tariff),
-      profitRub: Math.round(s.profit)
+      netProfitRub: Math.round(s.profit)
     }))
   };
 }
@@ -210,6 +337,7 @@ function exportPdf() {
   let y = 40;
   const step = 18;
   const maxWidth = 520;
+
   const write = (text, size = 11, bold = false) => {
     doc.setFont("helvetica", bold ? "bold" : "normal");
     doc.setFontSize(size);
@@ -225,24 +353,34 @@ function exportPdf() {
   write("Transport Company Profit Report", 16, true);
   write(`Generated at: ${new Date(lastCalculation.generatedAt).toLocaleString("ru-RU")}`);
   y += 8;
+
   write("Key Metrics", 13, true);
-  write(`Monthly revenue: ${formatRub(payload.metrics.monthlyRevenue)}`);
-  write(`Monthly cost: ${formatRub(payload.metrics.monthlyCost)}`);
-  write(`Profit: ${formatRub(payload.metrics.profit)}`);
+  write(`Revenue net: ${formatRub(payload.metrics.monthlyRevenueNet)}`);
+  write(`Operating cost: ${formatRub(payload.metrics.monthlyOperatingCost)}`);
+  write(`Net profit: ${formatRub(payload.metrics.netProfit)}`);
   write(`Margin: ${payload.metrics.marginPercent}%`);
-  write(`Trips per month: ${payload.metrics.tripsPerMonth}`);
+  write(`Aggregator fee: ${formatRub(payload.metrics.aggregatorFee)}`);
+
   y += 8;
-  write("Breakeven", 13, true);
-  if (payload.breakeven.trips === null) {
-    write("Breakeven is not available: per-trip contribution <= 0.");
-  } else {
-    write(`Required trips: ${Math.ceil(payload.breakeven.trips)}`);
-    write(`Trips per vehicle: ${payload.breakeven.tripsPerVehicle}`);
-  }
+  write("P&L", 13, true);
+  write(`Revenue net: ${formatRub(payload.pnl.revenueNet)}`);
+  write(`Variable cost: ${formatRub(payload.pnl.variableCost)}`);
+  write(`Gross profit: ${formatRub(payload.pnl.grossProfit)}`);
+  write(`Fixed operating cost: ${formatRub(payload.pnl.fixedOperatingCost)}`);
+  write(`EBITDA: ${formatRub(payload.pnl.ebitda)}`);
+  write(`Tax: ${formatRub(payload.pnl.tax)}`);
+  write(`Net profit: ${formatRub(payload.pnl.netProfit)}`);
+
+  y += 8;
+  write("Cash Flow", 13, true);
+  write(`Cash in: ${formatRub(payload.cashflow.cashIn)}`);
+  write(`Cash out: ${formatRub(payload.cashflow.cashOut)}`);
+  write(`Net cash flow: ${formatRub(payload.cashflow.netCashFlow)}`);
+
   y += 8;
   write("Scenarios", 13, true);
   payload.scenarios.forEach((s) => {
-    write(`${s.scenario}: trips ${s.trips}, tariff ${formatRub(s.tariffRub)}, profit ${formatRub(s.profitRub)}`);
+    write(`${s.scenario}: trips ${s.trips}, tariff ${formatRub(s.tariffRub)}, net profit ${formatRub(s.netProfitRub)}`);
   });
 
   doc.save(`transport_profit_report_${timestampSlug()}.pdf`);
@@ -259,11 +397,22 @@ function exportCsv() {
   const payload = toExportObject(lastCalculation);
   const lines = [
     "section,key,value",
-    `metrics,monthlyRevenue,${payload.metrics.monthlyRevenue}`,
-    `metrics,monthlyCost,${payload.metrics.monthlyCost}`,
-    `metrics,profit,${payload.metrics.profit}`,
+    `metrics,monthlyRevenueNet,${payload.metrics.monthlyRevenueNet}`,
+    `metrics,monthlyOperatingCost,${payload.metrics.monthlyOperatingCost}`,
+    `metrics,netProfit,${payload.metrics.netProfit}`,
     `metrics,marginPercent,${payload.metrics.marginPercent}`,
     `metrics,tripsPerMonth,${payload.metrics.tripsPerMonth}`,
+    `metrics,aggregatorFee,${payload.metrics.aggregatorFee}`,
+    `pnl,revenueNet,${payload.pnl.revenueNet}`,
+    `pnl,variableCost,${payload.pnl.variableCost}`,
+    `pnl,grossProfit,${payload.pnl.grossProfit}`,
+    `pnl,fixedOperatingCost,${payload.pnl.fixedOperatingCost}`,
+    `pnl,ebitda,${payload.pnl.ebitda}`,
+    `pnl,tax,${payload.pnl.tax}`,
+    `pnl,netProfit,${payload.pnl.netProfit}`,
+    `cashflow,cashIn,${payload.cashflow.cashIn}`,
+    `cashflow,cashOut,${payload.cashflow.cashOut}`,
+    `cashflow,netCashFlow,${payload.cashflow.netCashFlow}`,
     `breakeven,trips,${payload.breakeven.trips ?? ""}`,
     `breakeven,tripsPerVehicle,${payload.breakeven.tripsPerVehicle ?? ""}`
   ];
@@ -272,7 +421,7 @@ function exportCsv() {
     lines.push(`scenario_${idx + 1},name,${s.scenario}`);
     lines.push(`scenario_${idx + 1},trips,${s.trips}`);
     lines.push(`scenario_${idx + 1},tariffRub,${s.tariffRub}`);
-    lines.push(`scenario_${idx + 1},profitRub,${s.profitRub}`);
+    lines.push(`scenario_${idx + 1},netProfitRub,${s.netProfitRub}`);
   });
 
   downloadFile(`transport_profit_report_${timestampSlug()}.csv`, lines.join("\n"), "text/csv;charset=utf-8");
@@ -296,56 +445,37 @@ function exportTxt() {
   if (!lastCalculation) {
     return;
   }
+
   const payload = toExportObject(lastCalculation);
   const rows = [
     "Transport Company Profit Report",
     `Generated at: ${new Date(lastCalculation.generatedAt).toLocaleString("ru-RU")}`,
     "",
-    "Key Metrics:",
-    `- Monthly revenue: ${formatRub(payload.metrics.monthlyRevenue)}`,
-    `- Monthly cost: ${formatRub(payload.metrics.monthlyCost)}`,
-    `- Profit: ${formatRub(payload.metrics.profit)}`,
+    "Metrics:",
+    `- Monthly revenue net: ${formatRub(payload.metrics.monthlyRevenueNet)}`,
+    `- Monthly operating cost: ${formatRub(payload.metrics.monthlyOperatingCost)}`,
+    `- Net profit: ${formatRub(payload.metrics.netProfit)}`,
     `- Margin: ${payload.metrics.marginPercent}%`,
-    `- Trips per month: ${payload.metrics.tripsPerMonth}`,
+    `- Aggregator fee: ${formatRub(payload.metrics.aggregatorFee)}`,
     "",
-    "Breakeven:",
-    payload.breakeven.trips === null
-      ? "- Not available: per-trip contribution <= 0."
-      : `- Required trips: ${Math.ceil(payload.breakeven.trips)} (per vehicle: ${payload.breakeven.tripsPerVehicle})`,
+    "P&L:",
+    `- Revenue net: ${formatRub(payload.pnl.revenueNet)}`,
+    `- Variable cost: ${formatRub(payload.pnl.variableCost)}`,
+    `- Gross profit: ${formatRub(payload.pnl.grossProfit)}`,
+    `- Fixed operating cost: ${formatRub(payload.pnl.fixedOperatingCost)}`,
+    `- EBITDA: ${formatRub(payload.pnl.ebitda)}`,
+    `- Tax: ${formatRub(payload.pnl.tax)}`,
+    `- Net profit: ${formatRub(payload.pnl.netProfit)}`,
+    "",
+    "Cash Flow:",
+    `- Cash in: ${formatRub(payload.cashflow.cashIn)}`,
+    `- Cash out: ${formatRub(payload.cashflow.cashOut)}`,
+    `- Net cash flow: ${formatRub(payload.cashflow.netCashFlow)}`,
     "",
     "Scenarios:"
   ];
-  payload.scenarios.forEach((s) => rows.push(`- ${s.scenario}: trips ${s.trips}, tariff ${formatRub(s.tariffRub)}, profit ${formatRub(s.profitRub)}`));
+  payload.scenarios.forEach((s) => rows.push(`- ${s.scenario}: trips ${s.trips}, tariff ${formatRub(s.tariffRub)}, net profit ${formatRub(s.netProfitRub)}`));
   downloadFile(`transport_profit_report_${timestampSlug()}.txt`, rows.join("\n"), "text/plain;charset=utf-8");
-}
-
-function calculate() {
-  const state = getState();
-  const result = model(state);
-  const breakpoint = breakeven(state);
-  const scenarios = renderScenarios(state);
-
-  revenueValue.textContent = formatRub(result.totalRevenue);
-  costValue.textContent = formatRub(result.totalCost);
-  profitValue.textContent = formatRub(result.profit);
-  marginValue.textContent = `${result.margin.toFixed(1)}%`;
-
-  if (!Number.isFinite(breakpoint.trips) || !Number.isFinite(breakpoint.perVehicle)) {
-    breakevenText.textContent = "Точка безубыточности не считается: вклад одного рейса <= 0. Пересмотрите тариф или затраты на рейс.";
-  } else {
-    breakevenText.textContent = `Для безубыточности нужно примерно ${Math.ceil(breakpoint.trips)} рейсов в месяц (${breakpoint.perVehicle.toFixed(1)} рейсов на машину).`;
-  }
-
-  lastCalculation = {
-    generatedAt: Date.now(),
-    state,
-    result,
-    breakpoint,
-    scenarios
-  };
-
-  renderPdf(lastCalculation);
-  results.classList.remove("hidden");
 }
 
 function loadDemo() {
@@ -354,12 +484,21 @@ function loadDemo() {
     tripsPerVehicle: 38,
     revenuePerTrip: 18500,
     loadFactor: 84,
+    aggregatorCommission: 11,
     otherRevenue: 260000,
+    cashCollectionRate: 90,
     fuelPerTrip: 4700,
     driverPayroll: 1980000,
+    officePayroll: 610000,
     maintenanceCost: 510000,
     roadAndFees: 290000,
-    adminCost: 370000
+    adminCost: 370000,
+    insuranceLicenses: 180000,
+    softwareDispatch: 110000,
+    leasingPayments: 420000,
+    taxRate: 20,
+    capex: 260000,
+    loanPayments: 190000
   };
 
   for (const [key, value] of Object.entries(demo)) {
@@ -377,6 +516,9 @@ function resetAll() {
   elements.tripsPerVehicle.value = 42;
   elements.revenuePerTrip.value = 16500;
   elements.loadFactor.value = 82;
+  elements.aggregatorCommission.value = 12;
+  elements.cashCollectionRate.value = 88;
+  elements.taxRate.value = 20;
   results.classList.add("hidden");
   pdfReport.classList.add("hidden");
   lastCalculation = null;
