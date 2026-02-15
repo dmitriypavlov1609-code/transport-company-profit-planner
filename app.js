@@ -73,20 +73,20 @@ function model(state, tripFactor = 1, revenueFactor = 1) {
   const variableFuelCost = trips * state.fuelPerTrip;
   // Себестоимость: топливо + зарплата водителей + комиссия агрегатора.
   const costOfSales = variableFuelCost + state.driverPayroll + aggregatorFee;
-  // Операционные расходы: все прочие расходы, кроме налогов и амортизации.
-  const operatingExpenses =
+  // Прочие операционные расходы (без себестоимости, налогов и амортизации).
+  const otherOperatingExpenses =
     state.officePayroll + state.maintenanceCost + state.roadAndFees + state.adminCost +
     state.insuranceLicenses + state.softwareDispatch + state.leasingPayments;
-
-  const totalOperatingCost = costOfSales + operatingExpenses;
+  // Операционные расходы (все кроме налогов и амортизации).
+  const operatingExpenses = costOfSales + otherOperatingExpenses;
 
   const grossProfit = totalRevenue - costOfSales;
-  const ebitda = grossProfit - operatingExpenses;
+  const ebitda = grossProfit - otherOperatingExpenses;
   const tax = Math.max(0, ebitda) * (state.taxRate / 100);
   const netProfit = ebitda - tax;
 
   const cashIn = totalRevenue * (state.cashCollectionRate / 100);
-  const cashOut = totalOperatingCost + tax + state.capex + state.loanPayments;
+  const cashOut = operatingExpenses + tax + state.capex + state.loanPayments;
   const netCashFlow = cashIn - cashOut;
 
   return {
@@ -99,8 +99,8 @@ function model(state, tripFactor = 1, revenueFactor = 1) {
     totalRevenue,
     variableFuelCost,
     costOfSales,
+    otherOperatingExpenses,
     operatingExpenses,
-    totalOperatingCost,
     grossProfit,
     ebitda,
     tax,
@@ -120,9 +120,10 @@ function applyTotalExpensesOverride(baseResult) {
 
   const totalOperatingCost = target;
   const adjustedCostOfSales = Math.min(baseResult.costOfSales, totalOperatingCost);
-  const operatingExpenses = Math.max(0, totalOperatingCost - adjustedCostOfSales);
+  const otherOperatingExpenses = Math.max(0, totalOperatingCost - adjustedCostOfSales);
+  const operatingExpenses = totalOperatingCost;
   const grossProfit = baseResult.totalRevenue - adjustedCostOfSales;
-  const ebitda = grossProfit - operatingExpenses;
+  const ebitda = grossProfit - otherOperatingExpenses;
   const tax = Math.max(0, ebitda) * (num(elements.taxRate.value) / 100);
   const netProfit = ebitda - tax;
   const cashOut = totalOperatingCost + tax + num(elements.capex.value) + num(elements.loanPayments.value);
@@ -131,8 +132,8 @@ function applyTotalExpensesOverride(baseResult) {
   return {
     ...baseResult,
     costOfSales: adjustedCostOfSales,
+    otherOperatingExpenses,
     operatingExpenses,
-    totalOperatingCost,
     grossProfit,
     ebitda,
     tax,
@@ -146,7 +147,7 @@ function applyTotalExpensesOverride(baseResult) {
 function updateAutoExpensesFromState() {
   const state = getState();
   const result = model(state);
-  totalExpensesAuto.value = formatRub(result.totalOperatingCost);
+  totalExpensesAuto.value = formatRub(result.operatingExpenses);
 }
 
 function updateRevenueTargetFromState() {
@@ -245,7 +246,7 @@ function toExportObject(snapshot) {
     inputs: snapshot.state,
     metrics: {
       monthlyRevenueNet: Math.round(snapshot.result.totalRevenue),
-      monthlyTotalExpense: Math.round(snapshot.result.totalOperatingCost),
+      monthlyTotalExpense: Math.round(snapshot.result.operatingExpenses),
       netProfit: Math.round(snapshot.result.netProfit),
       marginPercent: Number(snapshot.result.margin.toFixed(1)),
       tripsPerMonth: Math.round(snapshot.result.trips),
@@ -255,6 +256,7 @@ function toExportObject(snapshot) {
       revenueNet: Math.round(snapshot.result.totalRevenue),
       costOfSales: Math.round(snapshot.result.costOfSales),
       grossProfit: Math.round(snapshot.result.grossProfit),
+      otherOperatingExpenses: Math.round(snapshot.result.otherOperatingExpenses),
       operatingExpenses: Math.round(snapshot.result.operatingExpenses),
       ebitda: Math.round(snapshot.result.ebitda),
       tax: Math.round(snapshot.result.tax),
@@ -332,7 +334,7 @@ function calculate() {
   const scenarios = renderScenarios(state);
 
   revenueValue.textContent = formatRub(result.totalRevenue);
-  costValue.textContent = formatRub(result.totalOperatingCost);
+  costValue.textContent = formatRub(result.operatingExpenses);
   profitValue.textContent = formatRub(result.netProfit);
   marginValue.textContent = `${result.margin.toFixed(1)}%`;
 
@@ -351,9 +353,9 @@ function calculate() {
   };
 
   persistSnapshot();
-  totalExpensesAuto.value = formatRub(baseResult.totalOperatingCost);
+  totalExpensesAuto.value = formatRub(baseResult.operatingExpenses);
   if (num(totalExpensesTarget.value) <= 0) {
-    totalExpensesTarget.value = Math.round(result.totalOperatingCost);
+    totalExpensesTarget.value = Math.round(result.operatingExpenses);
   }
   results.classList.remove("hidden");
 }
