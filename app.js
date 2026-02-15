@@ -344,7 +344,6 @@ function calculate() {
   };
 
   persistSnapshot();
-  updateRevenueTargetFromState();
   if (num(totalExpensesTarget.value) <= 0) {
     totalExpensesTarget.value = Math.round(result.totalOperatingCost);
   }
