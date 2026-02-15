@@ -109,6 +109,13 @@ button {
   gap: 14px;
 }
 
+.pnl-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 h2 { margin: 0 0 10px; font-size: 1.05rem; }
 
 table {
@@ -137,7 +144,7 @@ th, td {
 
 @media print {
   body { background: #fff; }
-  .header-actions, .inline-link { display: none !important; }
+  .header-actions, .inline-link, .pnl-actions { display: none !important; }
   .shell { width: 100%; margin: 0; }
   .card, .metric { border-radius: 0; border: 1px solid #ddd; box-shadow: none; }
 }

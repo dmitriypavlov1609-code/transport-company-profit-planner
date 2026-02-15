@@ -7,6 +7,10 @@ const downloadPdfBtn = document.getElementById("downloadPdfBtn");
 const downloadCsvBtn = document.getElementById("downloadCsvBtn");
 const downloadJsonBtn = document.getElementById("downloadJsonBtn");
 const downloadTxtBtn = document.getElementById("downloadTxtBtn");
+const downloadPnlPdfBtn = document.getElementById("downloadPnlPdfBtn");
+const downloadPnlCsvBtn = document.getElementById("downloadPnlCsvBtn");
+const downloadPnlJsonBtn = document.getElementById("downloadPnlJsonBtn");
+const downloadPnlTxtBtn = document.getElementById("downloadPnlTxtBtn");
 const printBtn = document.getElementById("printBtn");
 
 const mRevenue = document.getElementById("mRevenue");
@@ -122,6 +126,29 @@ function renderReport(data) {
     `;
     scenarioTable.appendChild(tr);
   }
+}
+
+function getPnlSnapshotView(data) {
+  return {
+    generatedAt: data.generatedAt,
+    revenueNet: data.pnl.revenueNet,
+    costOfSales: data.pnl.costOfSales,
+    costOfSalesAggregatorFee: data.pnl.costOfSalesAggregatorFee ?? data.metrics.aggregatorFee,
+    costOfSalesDriverPayroll: data.pnl.costOfSalesDriverPayroll ?? data.inputs.driverPayroll ?? 0,
+    grossProfit: data.pnl.grossProfit,
+    operatingExpenses: data.pnl.otherOperatingExpenses ?? data.pnl.operatingExpenses,
+    operatingFuel: data.pnl.operatingFuel ?? data.inputs.fuelPerTrip * data.metrics.tripsPerMonth,
+    operatingOfficePayroll: data.pnl.operatingOfficePayroll ?? data.inputs.officePayroll ?? 0,
+    operatingMaintenance: data.pnl.operatingMaintenance ?? data.inputs.maintenanceCost ?? 0,
+    operatingRoadAndFees: data.pnl.operatingRoadAndFees ?? data.inputs.roadAndFees ?? 0,
+    operatingAdmin: data.pnl.operatingAdmin ?? data.inputs.adminCost ?? 0,
+    operatingInsuranceLicenses: data.pnl.operatingInsuranceLicenses ?? data.inputs.insuranceLicenses ?? 0,
+    operatingSoftwareDispatch: data.pnl.operatingSoftwareDispatch ?? data.inputs.softwareDispatch ?? 0,
+    operatingLeasing: data.pnl.operatingLeasing ?? data.inputs.leasingPayments ?? 0,
+    ebitda: data.pnl.ebitda,
+    tax: data.pnl.tax,
+    netProfit: data.pnl.netProfit
+  };
 }
 
 function downloadPdf() {
@@ -294,6 +321,125 @@ function downloadTxt() {
   downloadFile(`otchet_opiu_dds_transportnoy_kompanii_${timestampSlug()}.txt`, rows.join("\n"), "text/plain;charset=utf-8");
 }
 
+function downloadPnlPdf() {
+  if (!snapshot) {
+    return;
+  }
+
+  const jsPdf = window.jspdf?.jsPDF;
+  if (!jsPdf) {
+    alert("PDF библиотека не загружена.");
+    return;
+  }
+
+  const pnl = getPnlSnapshotView(snapshot);
+  const doc = new jsPdf({ unit: "pt", format: "a4" });
+  let y = 40;
+  const step = 18;
+  const maxWidth = 520;
+
+  const write = (text, size = 11, bold = false) => {
+    doc.setFont("helvetica", bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    const lines = doc.splitTextToSize(String(text), maxWidth);
+    doc.text(lines, 40, y);
+    y += lines.length * step;
+    if (y > 780) {
+      doc.addPage();
+      y = 40;
+    }
+  };
+
+  write("Отдельный отчет PnL (ОПиУ)", 15, true);
+  write(`Сформирован: ${new Date(pnl.generatedAt).toLocaleString("ru-RU")}`);
+  y += 6;
+  write(`Выручка (нетто): ${formatRub(pnl.revenueNet)}`);
+  write(`Себестоимость (комиссия агрегатора + ЗП водителей): ${formatRub(pnl.costOfSales)}`);
+  write(`Комиссия агрегатора в себестоимости: ${formatRub(pnl.costOfSalesAggregatorFee)}`);
+  write(`Зарплата водителей в себестоимости: ${formatRub(pnl.costOfSalesDriverPayroll)}`);
+  write(`Валовая прибыль: ${formatRub(pnl.grossProfit)}`);
+  write(`Операционные расходы: ${formatRub(pnl.operatingExpenses)}`);
+  write(`  Топливо: ${formatRub(pnl.operatingFuel)}`);
+  write(`  Зарплаты офиса: ${formatRub(pnl.operatingOfficePayroll)}`);
+  write(`  ТО и ремонт: ${formatRub(pnl.operatingMaintenance)}`);
+  write(`  Дороги и сборы: ${formatRub(pnl.operatingRoadAndFees)}`);
+  write(`  Административные: ${formatRub(pnl.operatingAdmin)}`);
+  write(`  Страховки и лицензии: ${formatRub(pnl.operatingInsuranceLicenses)}`);
+  write(`  Диспетчеризация и ПО: ${formatRub(pnl.operatingSoftwareDispatch)}`);
+  write(`  Лизинг: ${formatRub(pnl.operatingLeasing)}`);
+  write(`EBITDA: ${formatRub(pnl.ebitda)}`);
+  write(`Налоги: ${formatRub(pnl.tax)}`);
+  write(`Чистая прибыль: ${formatRub(pnl.netProfit)}`);
+
+  doc.save(`otchet_pnl_${timestampSlug()}.pdf`);
+}
+
+function downloadPnlCsv() {
+  if (!snapshot) {
+    return;
+  }
+  const pnl = getPnlSnapshotView(snapshot);
+  const lines = [
+    "раздел,показатель,значение",
+    `опиу,выручка_нетто,${pnl.revenueNet}`,
+    `опиу,себестоимость_(комиссия_агрегатора_+_зп_водителей),${pnl.costOfSales}`,
+    `опиу,комиссия_агрегатора_в_себестоимости,${pnl.costOfSalesAggregatorFee}`,
+    `опиу,зарплата_водителей_в_себестоимости,${pnl.costOfSalesDriverPayroll}`,
+    `опиу,валовая_прибыль,${pnl.grossProfit}`,
+    `опиу,операционные_расходы,${pnl.operatingExpenses}`,
+    `опиу,операционные_расходы_топливо,${pnl.operatingFuel}`,
+    `опиу,операционные_расходы_зарплата_офиса,${pnl.operatingOfficePayroll}`,
+    `опиу,операционные_расходы_то_и_ремонт,${pnl.operatingMaintenance}`,
+    `опиу,операционные_расходы_дороги_и_сборы,${pnl.operatingRoadAndFees}`,
+    `опиу,операционные_расходы_административные,${pnl.operatingAdmin}`,
+    `опиу,операционные_расходы_страховки_и_лицензии,${pnl.operatingInsuranceLicenses}`,
+    `опиу,операционные_расходы_диспетчеризация_и_по,${pnl.operatingSoftwareDispatch}`,
+    `опиу,операционные_расходы_лизинг,${pnl.operatingLeasing}`,
+    `опиу,ebitda,${pnl.ebitda}`,
+    `опиу,налоги,${pnl.tax}`,
+    `опиу,чистая_прибыль,${pnl.netProfit}`
+  ];
+  downloadFile(`otchet_pnl_${timestampSlug()}.csv`, lines.join("\n"), "text/csv;charset=utf-8");
+}
+
+function downloadPnlJson() {
+  if (!snapshot) {
+    return;
+  }
+  const pnl = getPnlSnapshotView(snapshot);
+  downloadFile(`otchet_pnl_${timestampSlug()}.json`, JSON.stringify(pnl, null, 2), "application/json;charset=utf-8");
+}
+
+function downloadPnlTxt() {
+  if (!snapshot) {
+    return;
+  }
+  const pnl = getPnlSnapshotView(snapshot);
+  const rows = [
+    "Отдельный отчет PnL (ОПиУ)",
+    `Сформирован: ${new Date(pnl.generatedAt).toLocaleString("ru-RU")}`,
+    "",
+    `- Выручка (нетто): ${formatRub(pnl.revenueNet)}`,
+    `- Себестоимость (комиссия агрегатора + ЗП водителей): ${formatRub(pnl.costOfSales)}`,
+    `- Комиссия агрегатора в себестоимости: ${formatRub(pnl.costOfSalesAggregatorFee)}`,
+    `- Зарплата водителей в себестоимости: ${formatRub(pnl.costOfSalesDriverPayroll)}`,
+    `- Валовая прибыль: ${formatRub(pnl.grossProfit)}`,
+    `- Операционные расходы: ${formatRub(pnl.operatingExpenses)}`,
+    `- Топливо: ${formatRub(pnl.operatingFuel)}`,
+    `- Зарплаты офиса: ${formatRub(pnl.operatingOfficePayroll)}`,
+    `- ТО и ремонт: ${formatRub(pnl.operatingMaintenance)}`,
+    `- Дороги и сборы: ${formatRub(pnl.operatingRoadAndFees)}`,
+    `- Административные: ${formatRub(pnl.operatingAdmin)}`,
+    `- Страховки и лицензии: ${formatRub(pnl.operatingInsuranceLicenses)}`,
+    `- Диспетчеризация и ПО: ${formatRub(pnl.operatingSoftwareDispatch)}`,
+    `- Лизинг: ${formatRub(pnl.operatingLeasing)}`,
+    `- EBITDA: ${formatRub(pnl.ebitda)}`,
+    `- Налоги: ${formatRub(pnl.tax)}`,
+    `- Чистая прибыль: ${formatRub(pnl.netProfit)}`
+  ];
+  downloadFile(`otchet_pnl_${timestampSlug()}.txt`, rows.join("\n"), "text/plain;charset=utf-8");
+}
+
 snapshot = loadSnapshot();
 if (!snapshot) {
   emptyState.classList.remove("hidden");
@@ -306,4 +452,8 @@ downloadPdfBtn.addEventListener("click", downloadPdf);
 downloadCsvBtn.addEventListener("click", downloadCsv);
 downloadJsonBtn.addEventListener("click", downloadJson);
 downloadTxtBtn.addEventListener("click", downloadTxt);
+downloadPnlPdfBtn.addEventListener("click", downloadPnlPdf);
+downloadPnlCsvBtn.addEventListener("click", downloadPnlCsv);
+downloadPnlJsonBtn.addEventListener("click", downloadPnlJson);
+downloadPnlTxtBtn.addEventListener("click", downloadPnlTxt);
 printBtn.addEventListener("click", () => window.print());
