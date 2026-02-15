@@ -5,6 +5,7 @@ const ids = [
 ];
 
 const SNAPSHOT_KEY = "transportPlannerSnapshotV1";
+const FORM_STATE_KEY = "transportPlannerFormStateV1";
 
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
 const calculateBtn = document.getElementById("calculateBtn");
@@ -57,6 +58,63 @@ function downloadFile(filename, content, mime) {
 
 function getState() {
   return Object.fromEntries(ids.map((id) => [id, num(elements[id].value)]));
+}
+
+function persistFormState() {
+  const payload = {
+    inputs: getState(),
+    revenueTarget: num(revenueTarget.value)
+  };
+  localStorage.setItem(FORM_STATE_KEY, JSON.stringify(payload));
+}
+
+function applyFormState(payload) {
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+  const inputs = payload.inputs;
+  if (!inputs || typeof inputs !== "object") {
+    return false;
+  }
+  for (const id of ids) {
+    if (Object.prototype.hasOwnProperty.call(inputs, id)) {
+      elements[id].value = num(inputs[id]);
+    }
+  }
+  revenueTarget.value = num(payload.revenueTarget);
+  return true;
+}
+
+function restoreFormState() {
+  const raw = localStorage.getItem(FORM_STATE_KEY);
+  if (!raw) {
+    return false;
+  }
+  try {
+    return applyFormState(JSON.parse(raw));
+  } catch {
+    return false;
+  }
+}
+
+function restoreFormStateFromSnapshot() {
+  const raw = localStorage.getItem(SNAPSHOT_KEY);
+  if (!raw) {
+    return false;
+  }
+  try {
+    const snapshot = JSON.parse(raw);
+    if (!snapshot || typeof snapshot !== "object" || !snapshot.inputs) {
+      return false;
+    }
+    const fallbackForm = {
+      inputs: snapshot.inputs,
+      revenueTarget: snapshot.metrics?.monthlyRevenueNet ?? 0
+    };
+    return applyFormState(fallbackForm);
+  } catch {
+    return false;
+  }
 }
 
 function model(state, tripFactor = 1, revenueFactor = 1) {
@@ -336,6 +394,7 @@ function calculate() {
   };
 
   persistSnapshot();
+  persistFormState();
   totalExpensesAuto.value = formatRub(result.operatingExpenses);
   results.classList.remove("hidden");
 }
@@ -564,6 +623,7 @@ function resetAll() {
   results.classList.add("hidden");
   lastCalculation = null;
   localStorage.removeItem(SNAPSHOT_KEY);
+  localStorage.removeItem(FORM_STATE_KEY);
   updateRevenueTargetFromState();
   updateAutoExpensesFromState();
 }
@@ -580,12 +640,18 @@ clearBtn.addEventListener("click", resetAll);
 for (const id of ids) {
   elements[id].addEventListener("input", calculate);
   elements[id].addEventListener("input", updateAutoExpensesFromState);
+  elements[id].addEventListener("input", persistFormState);
 }
 
 revenueTarget.addEventListener("input", () => {
   applyRevenueTarget();
   calculate();
+  persistFormState();
 });
 
-updateRevenueTargetFromState();
+const restoredState = restoreFormState() || restoreFormStateFromSnapshot();
+if (!restoredState) {
+  updateRevenueTargetFromState();
+}
 updateAutoExpensesFromState();
+persistFormState();
