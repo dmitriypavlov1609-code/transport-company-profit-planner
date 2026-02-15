@@ -23,6 +23,7 @@ const profitValue = document.getElementById("profitValue");
 const marginValue = document.getElementById("marginValue");
 const breakevenText = document.getElementById("breakevenText");
 const scenarioTable = document.getElementById("scenarioTable");
+const revenuePreview = document.getElementById("revenuePreview");
 
 let lastCalculation = null;
 
@@ -107,6 +108,12 @@ function model(state, tripFactor = 1, revenueFactor = 1) {
     netCashFlow,
     margin: totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0
   };
+}
+
+function updateRevenuePreview() {
+  const state = getState();
+  const result = model(state);
+  revenuePreview.value = formatRub(result.totalRevenue);
 }
 
 function breakeven(state) {
@@ -272,6 +279,7 @@ function calculate() {
   };
 
   persistSnapshot();
+  updateRevenuePreview();
   results.classList.remove("hidden");
 }
 
@@ -454,6 +462,7 @@ function loadDemo() {
   }
 
   calculate();
+  updateRevenuePreview();
 }
 
 function resetAll() {
@@ -470,6 +479,7 @@ function resetAll() {
   results.classList.add("hidden");
   lastCalculation = null;
   localStorage.removeItem(SNAPSHOT_KEY);
+  updateRevenuePreview();
 }
 
 calculateBtn.addEventListener("click", calculate);
@@ -480,3 +490,9 @@ exportJsonBtn.addEventListener("click", exportJson);
 exportTxtBtn.addEventListener("click", exportTxt);
 demoBtn.addEventListener("click", loadDemo);
 clearBtn.addEventListener("click", resetAll);
+
+for (const id of ids) {
+  elements[id].addEventListener("input", updateRevenuePreview);
+}
+
+updateRevenuePreview();
