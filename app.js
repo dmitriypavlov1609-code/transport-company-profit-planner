@@ -196,6 +196,45 @@ function toExportObject(snapshot) {
   };
 }
 
+function toRussianExportObject(payload) {
+  return {
+    сформирован: payload.generatedAt,
+    входные_данные: payload.inputs,
+    ключевые_показатели: {
+      выручка_нетто_в_месяц: payload.metrics.monthlyRevenueNet,
+      операционные_расходы_в_месяц: payload.metrics.monthlyOperatingCost,
+      чистая_прибыль: payload.metrics.netProfit,
+      маржа_процентов: payload.metrics.marginPercent,
+      рейсов_в_месяц: payload.metrics.tripsPerMonth,
+      комиссия_агрегатора: payload.metrics.aggregatorFee
+    },
+    опиу: {
+      выручка_нетто: payload.pnl.revenueNet,
+      переменные_затраты: payload.pnl.variableCost,
+      валовая_прибыль: payload.pnl.grossProfit,
+      фиксированные_операционные_затраты: payload.pnl.fixedOperatingCost,
+      ebitda: payload.pnl.ebitda,
+      налоги: payload.pnl.tax,
+      чистая_прибыль: payload.pnl.netProfit
+    },
+    ддс: {
+      денежные_поступления: payload.cashflow.cashIn,
+      денежные_выплаты: payload.cashflow.cashOut,
+      чистый_денежный_поток: payload.cashflow.netCashFlow
+    },
+    безубыточность: {
+      рейсов: payload.breakeven.trips,
+      рейсов_на_машину: payload.breakeven.tripsPerVehicle
+    },
+    сценарии: payload.scenarios.map((s) => ({
+      сценарий: s.scenario,
+      рейсов: s.trips,
+      тариф_руб: s.tariffRub,
+      чистая_прибыль_руб: s.netProfitRub
+    }))
+  };
+}
+
 function persistSnapshot() {
   if (!lastCalculation) {
     return;
@@ -268,31 +307,31 @@ function exportPdf() {
     }
   };
 
-  write("Transport Company Profit Report", 16, true);
-  write(`Generated at: ${new Date(lastCalculation.generatedAt).toLocaleString("ru-RU")}`);
+  write("Отчет по прибыльности транспортной компании", 16, true);
+  write(`Сформирован: ${new Date(lastCalculation.generatedAt).toLocaleString("ru-RU")}`);
   y += 8;
-  write("Key Metrics", 13, true);
-  write(`Revenue net: ${formatRub(payload.metrics.monthlyRevenueNet)}`);
-  write(`Operating cost: ${formatRub(payload.metrics.monthlyOperatingCost)}`);
-  write(`Net profit: ${formatRub(payload.metrics.netProfit)}`);
-  write(`Margin: ${payload.metrics.marginPercent}%`);
-  write(`Aggregator fee: ${formatRub(payload.metrics.aggregatorFee)}`);
+  write("Ключевые показатели", 13, true);
+  write(`Выручка (нетто): ${formatRub(payload.metrics.monthlyRevenueNet)}`);
+  write(`Операционные расходы: ${formatRub(payload.metrics.monthlyOperatingCost)}`);
+  write(`Чистая прибыль: ${formatRub(payload.metrics.netProfit)}`);
+  write(`Маржа: ${payload.metrics.marginPercent}%`);
+  write(`Комиссия агрегатора: ${formatRub(payload.metrics.aggregatorFee)}`);
   y += 8;
-  write("P&L", 13, true);
-  write(`Revenue net: ${formatRub(payload.pnl.revenueNet)}`);
-  write(`Variable cost: ${formatRub(payload.pnl.variableCost)}`);
-  write(`Gross profit: ${formatRub(payload.pnl.grossProfit)}`);
-  write(`Fixed operating cost: ${formatRub(payload.pnl.fixedOperatingCost)}`);
+  write("ОПиУ", 13, true);
+  write(`Выручка (нетто): ${formatRub(payload.pnl.revenueNet)}`);
+  write(`Переменные затраты: ${formatRub(payload.pnl.variableCost)}`);
+  write(`Валовая прибыль: ${formatRub(payload.pnl.grossProfit)}`);
+  write(`Фиксированные операционные: ${formatRub(payload.pnl.fixedOperatingCost)}`);
   write(`EBITDA: ${formatRub(payload.pnl.ebitda)}`);
-  write(`Tax: ${formatRub(payload.pnl.tax)}`);
-  write(`Net profit: ${formatRub(payload.pnl.netProfit)}`);
+  write(`Налоги: ${formatRub(payload.pnl.tax)}`);
+  write(`Чистая прибыль: ${formatRub(payload.pnl.netProfit)}`);
   y += 8;
-  write("Cash Flow", 13, true);
-  write(`Cash in: ${formatRub(payload.cashflow.cashIn)}`);
-  write(`Cash out: ${formatRub(payload.cashflow.cashOut)}`);
-  write(`Net cash flow: ${formatRub(payload.cashflow.netCashFlow)}`);
+  write("ДДС", 13, true);
+  write(`Денежные поступления: ${formatRub(payload.cashflow.cashIn)}`);
+  write(`Денежные выплаты: ${formatRub(payload.cashflow.cashOut)}`);
+  write(`Чистый денежный поток: ${formatRub(payload.cashflow.netCashFlow)}`);
 
-  doc.save(`transport_profit_report_${timestampSlug()}.pdf`);
+  doc.save(`otchet_transportnoy_kompanii_${timestampSlug()}.pdf`);
 }
 
 function exportCsv() {
@@ -302,35 +341,35 @@ function exportCsv() {
 
   const payload = toExportObject(lastCalculation);
   const lines = [
-    "section,key,value",
-    `metrics,monthlyRevenueNet,${payload.metrics.monthlyRevenueNet}`,
-    `metrics,monthlyOperatingCost,${payload.metrics.monthlyOperatingCost}`,
-    `metrics,netProfit,${payload.metrics.netProfit}`,
-    `metrics,marginPercent,${payload.metrics.marginPercent}`,
-    `metrics,tripsPerMonth,${payload.metrics.tripsPerMonth}`,
-    `metrics,aggregatorFee,${payload.metrics.aggregatorFee}`,
-    `pnl,revenueNet,${payload.pnl.revenueNet}`,
-    `pnl,variableCost,${payload.pnl.variableCost}`,
-    `pnl,grossProfit,${payload.pnl.grossProfit}`,
-    `pnl,fixedOperatingCost,${payload.pnl.fixedOperatingCost}`,
-    `pnl,ebitda,${payload.pnl.ebitda}`,
-    `pnl,tax,${payload.pnl.tax}`,
-    `pnl,netProfit,${payload.pnl.netProfit}`,
-    `cashflow,cashIn,${payload.cashflow.cashIn}`,
-    `cashflow,cashOut,${payload.cashflow.cashOut}`,
-    `cashflow,netCashFlow,${payload.cashflow.netCashFlow}`,
-    `breakeven,trips,${payload.breakeven.trips ?? ""}`,
-    `breakeven,tripsPerVehicle,${payload.breakeven.tripsPerVehicle ?? ""}`
+    "раздел,показатель,значение",
+    `ключевые_показатели,выручка_нетто_в_месяц,${payload.metrics.monthlyRevenueNet}`,
+    `ключевые_показатели,операционные_расходы_в_месяц,${payload.metrics.monthlyOperatingCost}`,
+    `ключевые_показатели,чистая_прибыль,${payload.metrics.netProfit}`,
+    `ключевые_показатели,маржа_процентов,${payload.metrics.marginPercent}`,
+    `ключевые_показатели,рейсов_в_месяц,${payload.metrics.tripsPerMonth}`,
+    `ключевые_показатели,комиссия_агрегатора,${payload.metrics.aggregatorFee}`,
+    `опиу,выручка_нетто,${payload.pnl.revenueNet}`,
+    `опиу,переменные_затраты,${payload.pnl.variableCost}`,
+    `опиу,валовая_прибыль,${payload.pnl.grossProfit}`,
+    `опиу,фиксированные_операционные_затраты,${payload.pnl.fixedOperatingCost}`,
+    `опиу,ebitda,${payload.pnl.ebitda}`,
+    `опиу,налоги,${payload.pnl.tax}`,
+    `опиу,чистая_прибыль,${payload.pnl.netProfit}`,
+    `ддс,денежные_поступления,${payload.cashflow.cashIn}`,
+    `ддс,денежные_выплаты,${payload.cashflow.cashOut}`,
+    `ддс,чистый_денежный_поток,${payload.cashflow.netCashFlow}`,
+    `безубыточность,рейсов,${payload.breakeven.trips ?? ""}`,
+    `безубыточность,рейсов_на_машину,${payload.breakeven.tripsPerVehicle ?? ""}`
   ];
 
   payload.scenarios.forEach((s, idx) => {
-    lines.push(`scenario_${idx + 1},name,${s.scenario}`);
-    lines.push(`scenario_${idx + 1},trips,${s.trips}`);
-    lines.push(`scenario_${idx + 1},tariffRub,${s.tariffRub}`);
-    lines.push(`scenario_${idx + 1},netProfitRub,${s.netProfitRub}`);
+    lines.push(`сценарий_${idx + 1},название,${s.scenario}`);
+    lines.push(`сценарий_${idx + 1},рейсов,${s.trips}`);
+    lines.push(`сценарий_${idx + 1},тариф_руб,${s.tariffRub}`);
+    lines.push(`сценарий_${idx + 1},чистая_прибыль_руб,${s.netProfitRub}`);
   });
 
-  downloadFile(`transport_profit_report_${timestampSlug()}.csv`, lines.join("\n"), "text/csv;charset=utf-8");
+  downloadFile(`otchet_transportnoy_kompanii_${timestampSlug()}.csv`, lines.join("\n"), "text/csv;charset=utf-8");
 }
 
 function exportJson() {
@@ -338,7 +377,8 @@ function exportJson() {
     return;
   }
   const payload = toExportObject(lastCalculation);
-  downloadFile(`transport_profit_report_${timestampSlug()}.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+  const russianPayload = toRussianExportObject(payload);
+  downloadFile(`otchet_transportnoy_kompanii_${timestampSlug()}.json`, JSON.stringify(russianPayload, null, 2), "application/json;charset=utf-8");
 }
 
 function exportTxt() {
@@ -372,7 +412,7 @@ function exportTxt() {
     `- Денежные выплаты: ${formatRub(payload.cashflow.cashOut)}`,
     `- Чистый денежный поток: ${formatRub(payload.cashflow.netCashFlow)}`
   ];
-  downloadFile(`transport_profit_report_${timestampSlug()}.txt`, rows.join("\n"), "text/plain;charset=utf-8");
+  downloadFile(`otchet_transportnoy_kompanii_${timestampSlug()}.txt`, rows.join("\n"), "text/plain;charset=utf-8");
 }
 
 function openReportPage() {

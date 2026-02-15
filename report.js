@@ -109,7 +109,7 @@ function downloadPdf() {
     }
   };
 
-  write("P&L и ДДС отчет по транспортной компании", 15, true);
+  write("Отчет ОПиУ и ДДС по транспортной компании", 15, true);
   write(`Сформирован: ${new Date(snapshot.generatedAt).toLocaleString("ru-RU")}`);
   y += 6;
 
@@ -121,7 +121,7 @@ function downloadPdf() {
   write(`Комиссия агрегатора: ${formatRub(snapshot.metrics.aggregatorFee)}`);
   y += 6;
 
-  write("P&L", 12, true);
+  write("ОПиУ", 12, true);
   write(`Выручка (нетто): ${formatRub(snapshot.pnl.revenueNet)}`);
   write(`Себестоимость рейсов: ${formatRub(snapshot.pnl.variableCost)}`);
   write(`Валовая прибыль: ${formatRub(snapshot.pnl.grossProfit)}`);
@@ -136,7 +136,7 @@ function downloadPdf() {
   write(`Денежные выплаты: ${formatRub(snapshot.cashflow.cashOut)}`);
   write(`Чистый денежный поток: ${formatRub(snapshot.cashflow.netCashFlow)}`);
 
-  doc.save("pnl_dds_otchet_transportnoy_kompanii.pdf");
+  doc.save("otchet_opiu_dds_transportnoy_kompanii.pdf");
 }
 
 snapshot = loadSnapshot();
