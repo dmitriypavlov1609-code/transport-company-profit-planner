@@ -146,7 +146,8 @@ function applyTotalExpensesOverride(baseResult) {
 
 function updateAutoExpensesFromState() {
   const state = getState();
-  const result = model(state);
+  const baseResult = model(state);
+  const result = applyTotalExpensesOverride(baseResult);
   totalExpensesAuto.value = formatRub(result.operatingExpenses);
 }
 
@@ -353,7 +354,7 @@ function calculate() {
   };
 
   persistSnapshot();
-  totalExpensesAuto.value = formatRub(baseResult.operatingExpenses);
+  totalExpensesAuto.value = formatRub(result.operatingExpenses);
   if (num(totalExpensesTarget.value) <= 0) {
     totalExpensesTarget.value = Math.round(result.operatingExpenses);
   }
