@@ -93,6 +93,12 @@ button {
   color: #fff;
 }
 
+#exportCsvBtn,
+#exportJsonBtn,
+#exportTxtBtn {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
 .ghost {
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid var(--line);

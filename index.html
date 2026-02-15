@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
   <main class="shell">
@@ -39,7 +40,10 @@
 
     <section class="actions">
       <button id="calculateBtn">Рассчитать</button>
-      <button id="exportPdfBtn">Export PDF</button>
+      <button id="exportPdfBtn">Скачать PDF</button>
+      <button id="exportCsvBtn" class="ghost">CSV</button>
+      <button id="exportJsonBtn" class="ghost">JSON</button>
+      <button id="exportTxtBtn" class="ghost">TXT</button>
       <button id="demoBtn" class="ghost">Демо кейс</button>
       <button id="clearBtn" class="ghost">Сбросить</button>
     </section>

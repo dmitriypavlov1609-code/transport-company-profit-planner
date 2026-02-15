@@ -6,6 +6,9 @@ const ids = [
 const elements = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
 const calculateBtn = document.getElementById("calculateBtn");
 const exportPdfBtn = document.getElementById("exportPdfBtn");
+const exportCsvBtn = document.getElementById("exportCsvBtn");
+const exportJsonBtn = document.getElementById("exportJsonBtn");
+const exportTxtBtn = document.getElementById("exportTxtBtn");
 const demoBtn = document.getElementById("demoBtn");
 const clearBtn = document.getElementById("clearBtn");
 const results = document.getElementById("results");
@@ -32,6 +35,24 @@ function num(value) {
 
 function formatRub(value) {
   return new Intl.NumberFormat("ru-RU").format(Math.round(value)) + " ₽";
+}
+
+function timestampSlug() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+function downloadFile(filename, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function getState() {
@@ -146,6 +167,158 @@ function renderPdf(snapshot) {
   }
 }
 
+function toExportObject(snapshot) {
+  return {
+    generatedAt: new Date(snapshot.generatedAt).toISOString(),
+    inputs: snapshot.state,
+    metrics: {
+      monthlyRevenue: Math.round(snapshot.result.totalRevenue),
+      monthlyCost: Math.round(snapshot.result.totalCost),
+      profit: Math.round(snapshot.result.profit),
+      marginPercent: Number(snapshot.result.margin.toFixed(1)),
+      tripsPerMonth: Math.round(snapshot.result.trips)
+    },
+    breakeven: {
+      trips: Number.isFinite(snapshot.breakpoint.trips) ? Number(snapshot.breakpoint.trips.toFixed(2)) : null,
+      tripsPerVehicle: Number.isFinite(snapshot.breakpoint.perVehicle) ? Number(snapshot.breakpoint.perVehicle.toFixed(2)) : null
+    },
+    scenarios: snapshot.scenarios.map((s) => ({
+      scenario: s.name,
+      trips: s.trips,
+      tariffRub: Math.round(s.tariff),
+      profitRub: Math.round(s.profit)
+    }))
+  };
+}
+
+function exportPdf() {
+  if (!lastCalculation) {
+    calculate();
+  }
+  if (!lastCalculation) {
+    return;
+  }
+
+  const payload = toExportObject(lastCalculation);
+  const jsPdf = window.jspdf?.jsPDF;
+  if (!jsPdf) {
+    alert("PDF библиотека не загружена. Используйте CSV/JSON/TXT или обновите страницу.");
+    return;
+  }
+
+  const doc = new jsPdf({ unit: "pt", format: "a4" });
+  let y = 40;
+  const step = 18;
+  const maxWidth = 520;
+  const write = (text, size = 11, bold = false) => {
+    doc.setFont("helvetica", bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    const lines = doc.splitTextToSize(String(text), maxWidth);
+    doc.text(lines, 40, y);
+    y += lines.length * step;
+    if (y > 780) {
+      doc.addPage();
+      y = 40;
+    }
+  };
+
+  write("Transport Company Profit Report", 16, true);
+  write(`Generated at: ${new Date(lastCalculation.generatedAt).toLocaleString("ru-RU")}`);
+  y += 8;
+  write("Key Metrics", 13, true);
+  write(`Monthly revenue: ${formatRub(payload.metrics.monthlyRevenue)}`);
+  write(`Monthly cost: ${formatRub(payload.metrics.monthlyCost)}`);
+  write(`Profit: ${formatRub(payload.metrics.profit)}`);
+  write(`Margin: ${payload.metrics.marginPercent}%`);
+  write(`Trips per month: ${payload.metrics.tripsPerMonth}`);
+  y += 8;
+  write("Breakeven", 13, true);
+  if (payload.breakeven.trips === null) {
+    write("Breakeven is not available: per-trip contribution <= 0.");
+  } else {
+    write(`Required trips: ${Math.ceil(payload.breakeven.trips)}`);
+    write(`Trips per vehicle: ${payload.breakeven.tripsPerVehicle}`);
+  }
+  y += 8;
+  write("Scenarios", 13, true);
+  payload.scenarios.forEach((s) => {
+    write(`${s.scenario}: trips ${s.trips}, tariff ${formatRub(s.tariffRub)}, profit ${formatRub(s.profitRub)}`);
+  });
+
+  doc.save(`transport_profit_report_${timestampSlug()}.pdf`);
+}
+
+function exportCsv() {
+  if (!lastCalculation) {
+    calculate();
+  }
+  if (!lastCalculation) {
+    return;
+  }
+
+  const payload = toExportObject(lastCalculation);
+  const lines = [
+    "section,key,value",
+    `metrics,monthlyRevenue,${payload.metrics.monthlyRevenue}`,
+    `metrics,monthlyCost,${payload.metrics.monthlyCost}`,
+    `metrics,profit,${payload.metrics.profit}`,
+    `metrics,marginPercent,${payload.metrics.marginPercent}`,
+    `metrics,tripsPerMonth,${payload.metrics.tripsPerMonth}`,
+    `breakeven,trips,${payload.breakeven.trips ?? ""}`,
+    `breakeven,tripsPerVehicle,${payload.breakeven.tripsPerVehicle ?? ""}`
+  ];
+
+  payload.scenarios.forEach((s, idx) => {
+    lines.push(`scenario_${idx + 1},name,${s.scenario}`);
+    lines.push(`scenario_${idx + 1},trips,${s.trips}`);
+    lines.push(`scenario_${idx + 1},tariffRub,${s.tariffRub}`);
+    lines.push(`scenario_${idx + 1},profitRub,${s.profitRub}`);
+  });
+
+  downloadFile(`transport_profit_report_${timestampSlug()}.csv`, lines.join("\n"), "text/csv;charset=utf-8");
+}
+
+function exportJson() {
+  if (!lastCalculation) {
+    calculate();
+  }
+  if (!lastCalculation) {
+    return;
+  }
+  const payload = toExportObject(lastCalculation);
+  downloadFile(`transport_profit_report_${timestampSlug()}.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+}
+
+function exportTxt() {
+  if (!lastCalculation) {
+    calculate();
+  }
+  if (!lastCalculation) {
+    return;
+  }
+  const payload = toExportObject(lastCalculation);
+  const rows = [
+    "Transport Company Profit Report",
+    `Generated at: ${new Date(lastCalculation.generatedAt).toLocaleString("ru-RU")}`,
+    "",
+    "Key Metrics:",
+    `- Monthly revenue: ${formatRub(payload.metrics.monthlyRevenue)}`,
+    `- Monthly cost: ${formatRub(payload.metrics.monthlyCost)}`,
+    `- Profit: ${formatRub(payload.metrics.profit)}`,
+    `- Margin: ${payload.metrics.marginPercent}%`,
+    `- Trips per month: ${payload.metrics.tripsPerMonth}`,
+    "",
+    "Breakeven:",
+    payload.breakeven.trips === null
+      ? "- Not available: per-trip contribution <= 0."
+      : `- Required trips: ${Math.ceil(payload.breakeven.trips)} (per vehicle: ${payload.breakeven.tripsPerVehicle})`,
+    "",
+    "Scenarios:"
+  ];
+  payload.scenarios.forEach((s) => rows.push(`- ${s.scenario}: trips ${s.trips}, tariff ${formatRub(s.tariffRub)}, profit ${formatRub(s.profitRub)}`));
+  downloadFile(`transport_profit_report_${timestampSlug()}.txt`, rows.join("\n"), "text/plain;charset=utf-8");
+}
+
 function calculate() {
   const state = getState();
   const result = model(state);
@@ -173,21 +346,6 @@ function calculate() {
 
   renderPdf(lastCalculation);
   results.classList.remove("hidden");
-}
-
-function exportPdf() {
-  if (!lastCalculation) {
-    calculate();
-  }
-
-  if (!lastCalculation) {
-    return;
-  }
-
-  renderPdf(lastCalculation);
-  pdfReport.classList.remove("hidden");
-  window.print();
-  pdfReport.classList.add("hidden");
 }
 
 function loadDemo() {
@@ -226,5 +384,8 @@ function resetAll() {
 
 calculateBtn.addEventListener("click", calculate);
 exportPdfBtn.addEventListener("click", exportPdf);
+exportCsvBtn.addEventListener("click", exportCsv);
+exportJsonBtn.addEventListener("click", exportJson);
+exportTxtBtn.addEventListener("click", exportTxt);
 demoBtn.addEventListener("click", loadDemo);
 clearBtn.addEventListener("click", resetAll);
