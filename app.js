@@ -24,6 +24,7 @@ const marginValue = document.getElementById("marginValue");
 const breakevenText = document.getElementById("breakevenText");
 const scenarioTable = document.getElementById("scenarioTable");
 const revenueTarget = document.getElementById("revenueTarget");
+const totalExpensesAuto = document.getElementById("totalExpensesAuto");
 const totalExpensesTarget = document.getElementById("totalExpensesTarget");
 
 let lastCalculation = null;
@@ -140,6 +141,12 @@ function applyTotalExpensesOverride(baseResult) {
     netCashFlow,
     margin: baseResult.totalRevenue > 0 ? (netProfit / baseResult.totalRevenue) * 100 : 0
   };
+}
+
+function updateAutoExpensesFromState() {
+  const state = getState();
+  const result = model(state);
+  totalExpensesAuto.value = formatRub(result.totalOperatingCost);
 }
 
 function updateRevenueTargetFromState() {
@@ -344,6 +351,7 @@ function calculate() {
   };
 
   persistSnapshot();
+  totalExpensesAuto.value = formatRub(baseResult.totalOperatingCost);
   if (num(totalExpensesTarget.value) <= 0) {
     totalExpensesTarget.value = Math.round(result.totalOperatingCost);
   }
@@ -549,6 +557,7 @@ function resetAll() {
   lastCalculation = null;
   localStorage.removeItem(SNAPSHOT_KEY);
   updateRevenueTargetFromState();
+  updateAutoExpensesFromState();
 }
 
 calculateBtn.addEventListener("click", calculate);
@@ -562,6 +571,7 @@ clearBtn.addEventListener("click", resetAll);
 
 for (const id of ids) {
   elements[id].addEventListener("input", calculate);
+  elements[id].addEventListener("input", updateAutoExpensesFromState);
 }
 
 revenueTarget.addEventListener("input", () => {
@@ -574,3 +584,4 @@ totalExpensesTarget.addEventListener("input", () => {
 });
 
 updateRevenueTargetFromState();
+updateAutoExpensesFromState();
