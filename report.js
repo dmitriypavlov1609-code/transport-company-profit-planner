@@ -73,6 +73,14 @@ function renderReport(data) {
     "Операционные расходы (без себестоимости, налогов и амортизации)",
     formatRub(data.pnl.otherOperatingExpenses ?? data.pnl.operatingExpenses)
   );
+  row(pnlTable, "  Топливо", formatRub(data.pnl.operatingFuel ?? data.inputs.fuelPerTrip * data.metrics.tripsPerMonth));
+  row(pnlTable, "  Зарплаты офиса", formatRub(data.pnl.operatingOfficePayroll ?? data.inputs.officePayroll ?? 0));
+  row(pnlTable, "  Обслуживание", formatRub(data.pnl.operatingMaintenance ?? data.inputs.maintenanceCost ?? 0));
+  row(pnlTable, "  Дороги и сборы", formatRub(data.pnl.operatingRoadAndFees ?? data.inputs.roadAndFees ?? 0));
+  row(pnlTable, "  Административные", formatRub(data.pnl.operatingAdmin ?? data.inputs.adminCost ?? 0));
+  row(pnlTable, "  Страховки и лицензии", formatRub(data.pnl.operatingInsuranceLicenses ?? data.inputs.insuranceLicenses ?? 0));
+  row(pnlTable, "  Диспетчеризация и ПО", formatRub(data.pnl.operatingSoftwareDispatch ?? data.inputs.softwareDispatch ?? 0));
+  row(pnlTable, "  Лизинг", formatRub(data.pnl.operatingLeasing ?? data.inputs.leasingPayments ?? 0));
   row(pnlTable, "EBITDA", formatRub(data.pnl.ebitda));
   row(pnlTable, "Налоги", formatRub(data.pnl.tax));
   row(pnlTable, "Чистая прибыль", formatRub(data.pnl.netProfit));
@@ -142,6 +150,14 @@ function downloadPdf() {
   write(`Зарплата водителей в себестоимости: ${formatRub(snapshot.pnl.costOfSalesDriverPayroll ?? snapshot.inputs.driverPayroll ?? 0)}`);
   write(`Валовая прибыль: ${formatRub(snapshot.pnl.grossProfit)}`);
   write(`Операционные расходы: ${formatRub(snapshot.pnl.otherOperatingExpenses ?? snapshot.pnl.operatingExpenses)}`);
+  write(`  Топливо: ${formatRub(snapshot.pnl.operatingFuel ?? snapshot.inputs.fuelPerTrip * snapshot.metrics.tripsPerMonth)}`);
+  write(`  Зарплаты офиса: ${formatRub(snapshot.pnl.operatingOfficePayroll ?? snapshot.inputs.officePayroll ?? 0)}`);
+  write(`  Обслуживание: ${formatRub(snapshot.pnl.operatingMaintenance ?? snapshot.inputs.maintenanceCost ?? 0)}`);
+  write(`  Дороги и сборы: ${formatRub(snapshot.pnl.operatingRoadAndFees ?? snapshot.inputs.roadAndFees ?? 0)}`);
+  write(`  Административные: ${formatRub(snapshot.pnl.operatingAdmin ?? snapshot.inputs.adminCost ?? 0)}`);
+  write(`  Страховки и лицензии: ${formatRub(snapshot.pnl.operatingInsuranceLicenses ?? snapshot.inputs.insuranceLicenses ?? 0)}`);
+  write(`  Диспетчеризация и ПО: ${formatRub(snapshot.pnl.operatingSoftwareDispatch ?? snapshot.inputs.softwareDispatch ?? 0)}`);
+  write(`  Лизинг: ${formatRub(snapshot.pnl.operatingLeasing ?? snapshot.inputs.leasingPayments ?? 0)}`);
   write(`EBITDA: ${formatRub(snapshot.pnl.ebitda)}`);
   write(`Налоги: ${formatRub(snapshot.pnl.tax)}`);
   write(`Чистая прибыль: ${formatRub(snapshot.pnl.netProfit)}`);

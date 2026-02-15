@@ -230,6 +230,14 @@ function toExportObject(snapshot) {
       costOfSalesAggregatorFee: Math.round(snapshot.result.aggregatorFee),
       costOfSalesDriverPayroll: Math.round(snapshot.result.driverPayrollCost),
       grossProfit: Math.round(snapshot.result.grossProfit),
+      operatingFuel: Math.round(snapshot.result.variableFuelCost),
+      operatingOfficePayroll: Math.round(snapshot.state.officePayroll),
+      operatingMaintenance: Math.round(snapshot.state.maintenanceCost),
+      operatingRoadAndFees: Math.round(snapshot.state.roadAndFees),
+      operatingAdmin: Math.round(snapshot.state.adminCost),
+      operatingInsuranceLicenses: Math.round(snapshot.state.insuranceLicenses),
+      operatingSoftwareDispatch: Math.round(snapshot.state.softwareDispatch),
+      operatingLeasing: Math.round(snapshot.state.leasingPayments),
       otherOperatingExpenses: Math.round(snapshot.result.otherOperatingExpenses),
       operatingExpenses: Math.round(snapshot.result.otherOperatingExpenses),
       ebitda: Math.round(snapshot.result.ebitda),
@@ -273,6 +281,14 @@ function toRussianExportObject(payload) {
       себестоимость_зарплата_водителей: payload.pnl.costOfSalesDriverPayroll,
       валовая_прибыль: payload.pnl.grossProfit,
       операционные_расходы: payload.pnl.operatingExpenses,
+      операционные_расходы_топливо: payload.pnl.operatingFuel,
+      операционные_расходы_зарплата_офиса: payload.pnl.operatingOfficePayroll,
+      операционные_расходы_обслуживание: payload.pnl.operatingMaintenance,
+      операционные_расходы_дороги_и_сборы: payload.pnl.operatingRoadAndFees,
+      операционные_расходы_административные: payload.pnl.operatingAdmin,
+      операционные_расходы_страховки_и_лицензии: payload.pnl.operatingInsuranceLicenses,
+      операционные_расходы_по_диспетчеризации_и_по: payload.pnl.operatingSoftwareDispatch,
+      операционные_расходы_лизинг: payload.pnl.operatingLeasing,
       ebitda: payload.pnl.ebitda,
       налоги: payload.pnl.tax,
       чистая_прибыль: payload.pnl.netProfit
@@ -388,6 +404,14 @@ function exportPdf() {
   write(`Зарплата водителей в себестоимости: ${formatRub(payload.pnl.costOfSalesDriverPayroll)}`);
   write(`Валовая прибыль: ${formatRub(payload.pnl.grossProfit)}`);
   write(`Операционные расходы: ${formatRub(payload.pnl.operatingExpenses)}`);
+  write(`  Топливо: ${formatRub(payload.pnl.operatingFuel)}`);
+  write(`  Зарплаты офиса: ${formatRub(payload.pnl.operatingOfficePayroll)}`);
+  write(`  Обслуживание: ${formatRub(payload.pnl.operatingMaintenance)}`);
+  write(`  Дороги и сборы: ${formatRub(payload.pnl.operatingRoadAndFees)}`);
+  write(`  Административные: ${formatRub(payload.pnl.operatingAdmin)}`);
+  write(`  Страховки и лицензии: ${formatRub(payload.pnl.operatingInsuranceLicenses)}`);
+  write(`  Диспетчеризация и ПО: ${formatRub(payload.pnl.operatingSoftwareDispatch)}`);
+  write(`  Лизинг: ${formatRub(payload.pnl.operatingLeasing)}`);
   write(`EBITDA: ${formatRub(payload.pnl.ebitda)}`);
   write(`Налоги: ${formatRub(payload.pnl.tax)}`);
   write(`Чистая прибыль: ${formatRub(payload.pnl.netProfit)}`);
@@ -420,6 +444,14 @@ function exportCsv() {
     `опиу,зарплата_водителей_в_себестоимости,${payload.pnl.costOfSalesDriverPayroll}`,
     `опиу,валовая_прибыль,${payload.pnl.grossProfit}`,
     `опиу,операционные_расходы,${payload.pnl.operatingExpenses}`,
+    `опиу,операционные_расходы_топливо,${payload.pnl.operatingFuel}`,
+    `опиу,операционные_расходы_зарплата_офиса,${payload.pnl.operatingOfficePayroll}`,
+    `опиу,операционные_расходы_обслуживание,${payload.pnl.operatingMaintenance}`,
+    `опиу,операционные_расходы_дороги_и_сборы,${payload.pnl.operatingRoadAndFees}`,
+    `опиу,операционные_расходы_административные,${payload.pnl.operatingAdmin}`,
+    `опиу,операционные_расходы_страховки_и_лицензии,${payload.pnl.operatingInsuranceLicenses}`,
+    `опиу,операционные_расходы_диспетчеризация_и_по,${payload.pnl.operatingSoftwareDispatch}`,
+    `опиу,операционные_расходы_лизинг,${payload.pnl.operatingLeasing}`,
     `опиу,ebitda,${payload.pnl.ebitda}`,
     `опиу,налоги,${payload.pnl.tax}`,
     `опиу,чистая_прибыль,${payload.pnl.netProfit}`,
@@ -473,6 +505,14 @@ function exportTxt() {
     `- Зарплата водителей в себестоимости: ${formatRub(payload.pnl.costOfSalesDriverPayroll)}`,
     `- Валовая прибыль: ${formatRub(payload.pnl.grossProfit)}`,
     `- Операционные расходы: ${formatRub(payload.pnl.operatingExpenses)}`,
+    `- Топливо: ${formatRub(payload.pnl.operatingFuel)}`,
+    `- Зарплаты офиса: ${formatRub(payload.pnl.operatingOfficePayroll)}`,
+    `- Обслуживание: ${formatRub(payload.pnl.operatingMaintenance)}`,
+    `- Дороги и сборы: ${formatRub(payload.pnl.operatingRoadAndFees)}`,
+    `- Административные: ${formatRub(payload.pnl.operatingAdmin)}`,
+    `- Страховки и лицензии: ${formatRub(payload.pnl.operatingInsuranceLicenses)}`,
+    `- Диспетчеризация и ПО: ${formatRub(payload.pnl.operatingSoftwareDispatch)}`,
+    `- Лизинг: ${formatRub(payload.pnl.operatingLeasing)}`,
     `- EBITDA: ${formatRub(payload.pnl.ebitda)}`,
     `- Налоги: ${formatRub(payload.pnl.tax)}`,
     `- Чистая прибыль: ${formatRub(payload.pnl.netProfit)}`,
