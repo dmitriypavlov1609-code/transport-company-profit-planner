@@ -18,6 +18,14 @@
       <p class="subtitle">Планируйте прибыль транспортной компании: выручка, себестоимость рейсов, маржа, безубыточность и сценарии.</p>
     </header>
 
+    <section class="top-inputs">
+      <article class="card">
+        <h2>Ключевые цели</h2>
+        <label>Выручка (целевая), ₽/мес <input id="revenueTarget" type="number" min="0" value="0" /></label>
+        <label>Все расходы (цель), ₽/мес <input id="totalExpensesTarget" type="number" min="0" value="0" /></label>
+      </article>
+    </section>
+
     <section class="grid">
       <article class="card">
         <h2>Операционная выручка</h2>
@@ -27,7 +35,6 @@
         <label>Средняя загрузка, % <input id="loadFactor" type="number" min="1" max="100" value="82" /></label>
         <label>Комиссия агрегатора, % <input id="aggregatorCommission" type="number" min="0" max="100" value="12" /></label>
         <label>Прочая выручка (экспедирование и т.д.), ₽ <input id="otherRevenue" type="number" min="0" value="180000" /></label>
-        <label>Выручка (целевая), ₽/мес <input id="revenueTarget" type="number" min="0" value="0" /></label>
         <label>Инкассация выручки в месяце, % <input id="cashCollectionRate" type="number" min="0" max="100" value="88" /></label>
       </article>
 

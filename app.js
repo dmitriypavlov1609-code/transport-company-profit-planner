@@ -24,6 +24,7 @@ const marginValue = document.getElementById("marginValue");
 const breakevenText = document.getElementById("breakevenText");
 const scenarioTable = document.getElementById("scenarioTable");
 const revenueTarget = document.getElementById("revenueTarget");
+const totalExpensesTarget = document.getElementById("totalExpensesTarget");
 
 let lastCalculation = null;
 
@@ -107,6 +108,37 @@ function model(state, tripFactor = 1, revenueFactor = 1) {
     cashOut,
     netCashFlow,
     margin: totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0
+  };
+}
+
+function applyTotalExpensesOverride(baseResult) {
+  const target = num(totalExpensesTarget.value);
+  if (target <= 0) {
+    return baseResult;
+  }
+
+  const totalOperatingCost = target;
+  const adjustedCostOfSales = Math.min(baseResult.costOfSales, totalOperatingCost);
+  const operatingExpenses = Math.max(0, totalOperatingCost - adjustedCostOfSales);
+  const grossProfit = baseResult.totalRevenue - adjustedCostOfSales;
+  const ebitda = grossProfit - operatingExpenses;
+  const tax = Math.max(0, ebitda) * (num(elements.taxRate.value) / 100);
+  const netProfit = ebitda - tax;
+  const cashOut = totalOperatingCost + tax + num(elements.capex.value) + num(elements.loanPayments.value);
+  const netCashFlow = baseResult.cashIn - cashOut;
+
+  return {
+    ...baseResult,
+    costOfSales: adjustedCostOfSales,
+    operatingExpenses,
+    totalOperatingCost,
+    grossProfit,
+    ebitda,
+    tax,
+    netProfit,
+    cashOut,
+    netCashFlow,
+    margin: baseResult.totalRevenue > 0 ? (netProfit / baseResult.totalRevenue) * 100 : 0
   };
 }
 
@@ -287,7 +319,8 @@ function persistSnapshot() {
 
 function calculate() {
   const state = getState();
-  const result = model(state);
+  const baseResult = model(state);
+  const result = applyTotalExpensesOverride(baseResult);
   const breakpoint = breakeven(state);
   const scenarios = renderScenarios(state);
 
@@ -312,6 +345,9 @@ function calculate() {
 
   persistSnapshot();
   updateRevenueTargetFromState();
+  if (num(totalExpensesTarget.value) <= 0) {
+    totalExpensesTarget.value = Math.round(result.totalOperatingCost);
+  }
   results.classList.remove("hidden");
 }
 
@@ -493,6 +529,7 @@ function loadDemo() {
     elements[key].value = value;
   }
 
+  totalExpensesTarget.value = 0;
   calculate();
   updateRevenueTargetFromState();
 }
@@ -508,6 +545,7 @@ function resetAll() {
   elements.aggregatorCommission.value = 12;
   elements.cashCollectionRate.value = 88;
   elements.taxRate.value = 20;
+  totalExpensesTarget.value = 0;
   results.classList.add("hidden");
   lastCalculation = null;
   localStorage.removeItem(SNAPSHOT_KEY);
@@ -529,6 +567,10 @@ for (const id of ids) {
 
 revenueTarget.addEventListener("input", () => {
   applyRevenueTarget();
+  calculate();
+});
+
+totalExpensesTarget.addEventListener("input", () => {
   calculate();
 });
 
