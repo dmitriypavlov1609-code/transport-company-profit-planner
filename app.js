@@ -62,12 +62,13 @@ function getState() {
 function model(state, tripFactor = 1, revenueFactor = 1) {
   const trips = state.activeVehicles * state.tripsPerVehicle * tripFactor;
   const grossTariffPerTrip = state.revenuePerTrip * revenueFactor;
-  const netTariffPerTrip = grossTariffPerTrip * (1 - state.aggregatorCommission / 100);
+  const commissionRate = state.aggregatorCommission / 100;
+  const netTariffPerTrip = grossTariffPerTrip * (1 - commissionRate);
 
   const grossTripRevenue = trips * grossTariffPerTrip;
-  const aggregatorFee = grossTripRevenue - trips * netTariffPerTrip;
-  const netTripRevenue = trips * netTariffPerTrip;
-  const totalRevenue = netTripRevenue + state.otherRevenue;
+  const totalRevenue = grossTripRevenue + state.otherRevenue;
+  const aggregatorFee = totalRevenue * commissionRate;
+  const netTripRevenue = grossTripRevenue - grossTripRevenue * commissionRate;
 
   const variableFuelCost = trips * state.fuelPerTrip;
   // Себестоимость: топливо + зарплата водителей + комиссия агрегатора.
@@ -130,14 +131,13 @@ function applyRevenueTarget() {
   const state = getState();
   const targetRevenue = num(revenueTarget.value);
   const grossTariffPerTrip = state.revenuePerTrip;
-  const netTariffPerTrip = grossTariffPerTrip * (1 - state.aggregatorCommission / 100);
 
-  if (netTariffPerTrip <= 0) {
+  if (grossTariffPerTrip <= 0) {
     return;
   }
 
   const requiredTripRevenue = Math.max(0, targetRevenue - state.otherRevenue);
-  const requiredTrips = requiredTripRevenue / netTariffPerTrip;
+  const requiredTrips = requiredTripRevenue / grossTariffPerTrip;
 
   let vehicles = Math.max(1, Math.round(state.activeVehicles || 1));
   let tripsPerVehicle = vehicles > 0 ? requiredTrips / vehicles : 0;
@@ -160,14 +160,15 @@ function applyRevenueTarget() {
 
 function breakeven(state) {
   const grossTariffPerTrip = state.revenuePerTrip;
-  const netTariffPerTrip = grossTariffPerTrip * (1 - state.aggregatorCommission / 100);
+  const commissionRate = state.aggregatorCommission / 100;
+  const netTariffPerTrip = grossTariffPerTrip * (1 - commissionRate);
   const contributionPerTrip = netTariffPerTrip - state.fuelPerTrip;
 
   const fixedApprox =
     state.driverPayroll + state.officePayroll + state.maintenanceCost + state.roadAndFees + state.adminCost +
     state.insuranceLicenses + state.softwareDispatch + state.leasingPayments;
 
-  const fixedNet = Math.max(0, fixedApprox - state.otherRevenue);
+  const fixedNet = Math.max(0, fixedApprox - state.otherRevenue * (1 - commissionRate));
 
   if (contributionPerTrip <= 0) {
     return { trips: Infinity, perVehicle: Infinity };
