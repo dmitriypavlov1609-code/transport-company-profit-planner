@@ -67,15 +67,18 @@ function model(state, tripFactor = 1, revenueFactor = 1) {
   const netTripRevenue = trips * netTariffPerTrip;
   const totalRevenue = netTripRevenue + state.otherRevenue;
 
-  const variableCost = trips * state.fuelPerTrip;
-  const fixedOperatingCost =
-    state.driverPayroll + state.officePayroll + state.maintenanceCost + state.roadAndFees + state.adminCost +
+  const variableFuelCost = trips * state.fuelPerTrip;
+  // Себестоимость: топливо + зарплата водителей + комиссия агрегатора.
+  const costOfSales = variableFuelCost + state.driverPayroll + aggregatorFee;
+  // Операционные расходы: все прочие расходы, кроме налогов и амортизации.
+  const operatingExpenses =
+    state.officePayroll + state.maintenanceCost + state.roadAndFees + state.adminCost +
     state.insuranceLicenses + state.softwareDispatch + state.leasingPayments;
 
-  const totalOperatingCost = variableCost + fixedOperatingCost;
+  const totalOperatingCost = costOfSales + operatingExpenses;
 
-  const grossProfit = totalRevenue - variableCost;
-  const ebitda = totalRevenue - totalOperatingCost;
+  const grossProfit = totalRevenue - costOfSales;
+  const ebitda = grossProfit - operatingExpenses;
   const tax = Math.max(0, ebitda) * (state.taxRate / 100);
   const netProfit = ebitda - tax;
 
@@ -91,8 +94,9 @@ function model(state, tripFactor = 1, revenueFactor = 1) {
     aggregatorFee,
     netTripRevenue,
     totalRevenue,
-    variableCost,
-    fixedOperatingCost,
+    variableFuelCost,
+    costOfSales,
+    operatingExpenses,
     totalOperatingCost,
     grossProfit,
     ebitda,
@@ -163,7 +167,7 @@ function toExportObject(snapshot) {
     inputs: snapshot.state,
     metrics: {
       monthlyRevenueNet: Math.round(snapshot.result.totalRevenue),
-      monthlyOperatingCost: Math.round(snapshot.result.totalOperatingCost),
+      monthlyTotalExpense: Math.round(snapshot.result.totalOperatingCost),
       netProfit: Math.round(snapshot.result.netProfit),
       marginPercent: Number(snapshot.result.margin.toFixed(1)),
       tripsPerMonth: Math.round(snapshot.result.trips),
@@ -171,9 +175,9 @@ function toExportObject(snapshot) {
     },
     pnl: {
       revenueNet: Math.round(snapshot.result.totalRevenue),
-      variableCost: Math.round(snapshot.result.variableCost),
+      costOfSales: Math.round(snapshot.result.costOfSales),
       grossProfit: Math.round(snapshot.result.grossProfit),
-      fixedOperatingCost: Math.round(snapshot.result.fixedOperatingCost),
+      operatingExpenses: Math.round(snapshot.result.operatingExpenses),
       ebitda: Math.round(snapshot.result.ebitda),
       tax: Math.round(snapshot.result.tax),
       netProfit: Math.round(snapshot.result.netProfit)
@@ -202,7 +206,7 @@ function toRussianExportObject(payload) {
     входные_данные: payload.inputs,
     ключевые_показатели: {
       выручка_нетто_в_месяц: payload.metrics.monthlyRevenueNet,
-      операционные_расходы_в_месяц: payload.metrics.monthlyOperatingCost,
+      совокупные_расходы_в_месяц: payload.metrics.monthlyTotalExpense,
       чистая_прибыль: payload.metrics.netProfit,
       маржа_процентов: payload.metrics.marginPercent,
       рейсов_в_месяц: payload.metrics.tripsPerMonth,
@@ -210,9 +214,9 @@ function toRussianExportObject(payload) {
     },
     опиу: {
       выручка_нетто: payload.pnl.revenueNet,
-      переменные_затраты: payload.pnl.variableCost,
+      себестоимость: payload.pnl.costOfSales,
       валовая_прибыль: payload.pnl.grossProfit,
-      фиксированные_операционные_затраты: payload.pnl.fixedOperatingCost,
+      операционные_расходы: payload.pnl.operatingExpenses,
       ebitda: payload.pnl.ebitda,
       налоги: payload.pnl.tax,
       чистая_прибыль: payload.pnl.netProfit
@@ -312,16 +316,16 @@ function exportPdf() {
   y += 8;
   write("Ключевые показатели", 13, true);
   write(`Выручка (нетто): ${formatRub(payload.metrics.monthlyRevenueNet)}`);
-  write(`Операционные расходы: ${formatRub(payload.metrics.monthlyOperatingCost)}`);
+  write(`Совокупные расходы: ${formatRub(payload.metrics.monthlyTotalExpense)}`);
   write(`Чистая прибыль: ${formatRub(payload.metrics.netProfit)}`);
   write(`Маржа: ${payload.metrics.marginPercent}%`);
   write(`Комиссия агрегатора: ${formatRub(payload.metrics.aggregatorFee)}`);
   y += 8;
   write("ОПиУ", 13, true);
   write(`Выручка (нетто): ${formatRub(payload.pnl.revenueNet)}`);
-  write(`Переменные затраты: ${formatRub(payload.pnl.variableCost)}`);
+  write(`Себестоимость: ${formatRub(payload.pnl.costOfSales)}`);
   write(`Валовая прибыль: ${formatRub(payload.pnl.grossProfit)}`);
-  write(`Фиксированные операционные: ${formatRub(payload.pnl.fixedOperatingCost)}`);
+  write(`Операционные расходы: ${formatRub(payload.pnl.operatingExpenses)}`);
   write(`EBITDA: ${formatRub(payload.pnl.ebitda)}`);
   write(`Налоги: ${formatRub(payload.pnl.tax)}`);
   write(`Чистая прибыль: ${formatRub(payload.pnl.netProfit)}`);
@@ -343,15 +347,15 @@ function exportCsv() {
   const lines = [
     "раздел,показатель,значение",
     `ключевые_показатели,выручка_нетто_в_месяц,${payload.metrics.monthlyRevenueNet}`,
-    `ключевые_показатели,операционные_расходы_в_месяц,${payload.metrics.monthlyOperatingCost}`,
+    `ключевые_показатели,совокупные_расходы_в_месяц,${payload.metrics.monthlyTotalExpense}`,
     `ключевые_показатели,чистая_прибыль,${payload.metrics.netProfit}`,
     `ключевые_показатели,маржа_процентов,${payload.metrics.marginPercent}`,
     `ключевые_показатели,рейсов_в_месяц,${payload.metrics.tripsPerMonth}`,
     `ключевые_показатели,комиссия_агрегатора,${payload.metrics.aggregatorFee}`,
     `опиу,выручка_нетто,${payload.pnl.revenueNet}`,
-    `опиу,переменные_затраты,${payload.pnl.variableCost}`,
+    `опиу,себестоимость,${payload.pnl.costOfSales}`,
     `опиу,валовая_прибыль,${payload.pnl.grossProfit}`,
-    `опиу,фиксированные_операционные_затраты,${payload.pnl.fixedOperatingCost}`,
+    `опиу,операционные_расходы,${payload.pnl.operatingExpenses}`,
     `опиу,ebitda,${payload.pnl.ebitda}`,
     `опиу,налоги,${payload.pnl.tax}`,
     `опиу,чистая_прибыль,${payload.pnl.netProfit}`,
@@ -393,16 +397,16 @@ function exportTxt() {
     "",
     "Ключевые показатели:",
     `- Выручка (нетто): ${formatRub(payload.metrics.monthlyRevenueNet)}`,
-    `- Операционные расходы: ${formatRub(payload.metrics.monthlyOperatingCost)}`,
+    `- Совокупные расходы: ${formatRub(payload.metrics.monthlyTotalExpense)}`,
     `- Чистая прибыль: ${formatRub(payload.metrics.netProfit)}`,
     `- Маржа: ${payload.metrics.marginPercent}%`,
     `- Комиссия агрегатора: ${formatRub(payload.metrics.aggregatorFee)}`,
     "",
     "P&L:",
     `- Выручка (нетто): ${formatRub(payload.pnl.revenueNet)}`,
-    `- Переменные затраты: ${formatRub(payload.pnl.variableCost)}`,
+    `- Себестоимость: ${formatRub(payload.pnl.costOfSales)}`,
     `- Валовая прибыль: ${formatRub(payload.pnl.grossProfit)}`,
-    `- Фиксированные операционные: ${formatRub(payload.pnl.fixedOperatingCost)}`,
+    `- Операционные расходы: ${formatRub(payload.pnl.operatingExpenses)}`,
     `- EBITDA: ${formatRub(payload.pnl.ebitda)}`,
     `- Налоги: ${formatRub(payload.pnl.tax)}`,
     `- Чистая прибыль: ${formatRub(payload.pnl.netProfit)}`,

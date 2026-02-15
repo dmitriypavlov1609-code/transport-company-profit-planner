@@ -44,7 +44,7 @@ function renderReport(data) {
   generatedAt.textContent = `Сформирован: ${new Date(data.generatedAt).toLocaleString("ru-RU")}`;
 
   mRevenue.textContent = formatRub(data.metrics.monthlyRevenueNet);
-  mCost.textContent = formatRub(data.metrics.monthlyOperatingCost);
+  mCost.textContent = formatRub(data.metrics.monthlyTotalExpense);
   mProfit.textContent = formatRub(data.metrics.netProfit);
   mMargin.textContent = `${data.metrics.marginPercent}%`;
 
@@ -56,9 +56,9 @@ function renderReport(data) {
 
   pnlTable.innerHTML = "";
   row(pnlTable, "Выручка (нетто)", formatRub(data.pnl.revenueNet));
-  row(pnlTable, "Себестоимость рейсов (переменная)", formatRub(data.pnl.variableCost));
+  row(pnlTable, "Себестоимость (топливо + ЗП водителей + комиссия агрегатора)", formatRub(data.pnl.costOfSales));
   row(pnlTable, "Валовая прибыль", formatRub(data.pnl.grossProfit));
-  row(pnlTable, "Операционные расходы (фикс)", formatRub(data.pnl.fixedOperatingCost));
+  row(pnlTable, "Операционные расходы (без налогов и амортизации)", formatRub(data.pnl.operatingExpenses));
   row(pnlTable, "EBITDA", formatRub(data.pnl.ebitda));
   row(pnlTable, "Налоги", formatRub(data.pnl.tax));
   row(pnlTable, "Чистая прибыль", formatRub(data.pnl.netProfit));
@@ -115,7 +115,7 @@ function downloadPdf() {
 
   write("Ключевые показатели", 12, true);
   write(`Выручка (нетто): ${formatRub(snapshot.metrics.monthlyRevenueNet)}`);
-  write(`Операционные расходы: ${formatRub(snapshot.metrics.monthlyOperatingCost)}`);
+  write(`Совокупные расходы: ${formatRub(snapshot.metrics.monthlyTotalExpense)}`);
   write(`Чистая прибыль: ${formatRub(snapshot.metrics.netProfit)}`);
   write(`Маржа: ${snapshot.metrics.marginPercent}%`);
   write(`Комиссия агрегатора: ${formatRub(snapshot.metrics.aggregatorFee)}`);
@@ -123,9 +123,9 @@ function downloadPdf() {
 
   write("ОПиУ", 12, true);
   write(`Выручка (нетто): ${formatRub(snapshot.pnl.revenueNet)}`);
-  write(`Себестоимость рейсов: ${formatRub(snapshot.pnl.variableCost)}`);
+  write(`Себестоимость: ${formatRub(snapshot.pnl.costOfSales)}`);
   write(`Валовая прибыль: ${formatRub(snapshot.pnl.grossProfit)}`);
-  write(`Операционные расходы: ${formatRub(snapshot.pnl.fixedOperatingCost)}`);
+  write(`Операционные расходы: ${formatRub(snapshot.pnl.operatingExpenses)}`);
   write(`EBITDA: ${formatRub(snapshot.pnl.ebitda)}`);
   write(`Налоги: ${formatRub(snapshot.pnl.tax)}`);
   write(`Чистая прибыль: ${formatRub(snapshot.pnl.netProfit)}`);
